@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 1,
+  "referenceCanvas": {
+    "width": 393,
+    "height": 852
+  },
+  "components": [
+    {
+      "type": "text",
+      "displayName": "metin",
+      "category": "Temel",
+      "paletteSymbol": "textformat",
+      "placement": "free",
+      "defaultSize": {
+        "width": 200,
+        "height": 30
+      },
+      "minSize": {
+        "width": 40,
+        "height": 20
+      },
+      "defaultProperties": {
+        "text": "Text",
+        "textStyle": "body"
+      },
+      "aiAliases": [
+        "text",
+        "label",
+        "title",
+        "heading",
+        "paragraph",
+        "metin",
+        "başlık",
+        "yazı"
+      ]
+    },
+    {
+      "type": "button",
+      "displayName": "buton",
+      "category": "Temel",
+      "paletteSymbol": "button.horizontal",
+      "placement": "free",
+      "defaultSize": {
+        "width": 200,
+        "height": 50
+      },
+      "minSize": {
+        "width": 44,
+        "height": 44
+      },
+      "defaultProperties": {
+        "text": "Button",
+        "style": "filled"
+      },
+      "aiAliases": [
+        "button",
+        "btn",
+        "cta",
+        "submit",
+        "buton",
+        "düğme"
+      ]
+    },
+    {
+      "type": "textField",
+      "displayName": "input",
+      "category": "Form",
+      "paletteSymbol": "character.cursor.ibeam",
+      "placement": "free",
+      "defaultSize": {
+        "width": 300,
+        "height": 44
+      },
+      "minSize": {
+        "width": 80,
+        "height": 34
+      },
+      "defaultProperties": {
+        "placeholder": "Enter text",
+        "style": "roundedBorder"
+      },
+      "aiAliases": [
+        "textfield",
+        "text field",
+        "input",
+        "search bar",
+        "searchbar",
+        "email",
+        "password",
+        "giriş alanı",
+        "arama"
+      ]
+    },
+    {
+      "type": "switch",
+      "displayName": "anahtar",
+      "category": "Form",
+      "paletteSymbol": "switch.2",
+      "placement": "free",
+      "defaultSize": {
+        "width": 300,
+        "height": 44
+      },
+      "minSize": {
+        "width": 51,
+        "height": 31
+      },
+      "defaultProperties": {
+        "text": "Option",
+        "isOn": true
+      },
+      "aiAliases": [
+        "switch",
+        "toggle",
+        "checkbox",
+        "anahtar",
+        "aç kapa"
+      ]
+    },
+    {
+      "type": "slider",
+      "displayName": "kaydırıcı",
+      "category": "Form",
+      "paletteSymbol": "slider.horizontal.3",
+      "placement": "free",
+      "defaultSize": {
+        "width": 300,
+        "height": 44
+      },
+      "minSize": {
+        "width": 80,
+        "height": 30
+      },
+      "defaultProperties": {
+        "value": 0.5,
+        "minValue": 0,
+        "maxValue": 1
+      },
+      "aiAliases": [
+        "slider",
+        "range",
+        "progress",
+        "kaydırıcı"
+      ]
+    },
+    {
+      "type": "navigationBar",
+      "displayName": "üst bar",
+      "category": "Navigasyon",
+      "paletteSymbol": "menubar.rectangle",
+      "placement": "top",
+      "defaultSize": {
+        "width": 393,
+        "height": 44
+      },
+      "minSize": {
+        "width": 393,
+        "height": 44
+      },
+      "defaultProperties": {
+        "text": "Title",
+        "titleDisplayMode": "inline",
+        "showsBackButton": false
+      },
+      "aiAliases": [
+        "navigation bar",
+        "navbar",
+        "nav bar",
+        "header",
+        "top bar",
+        "app bar",
+        "üst bar",
+        "başlık çubuğu"
+      ]
+    },
+    {
+      "type": "tabBar",
+      "displayName": "alt menü",
+      "category": "Navigasyon",
+      "paletteSymbol": "dock.rectangle",
+      "placement": "bottom",
+      "defaultSize": {
+        "width": 393,
+        "height": 83
+      },
+      "minSize": {
+        "width": 393,
+        "height": 49
+      },
+      "defaultProperties": {
+        "selectedIndex": 0,
+        "items": [
+          {
+            "text": "Home",
+            "symbolName": "house"
+          },
+          {
+            "text": "Search",
+            "symbolName": "magnifyingglass"
+          },
+          {
+            "text": "Profile",
+            "symbolName": "person"
+          }
+        ]
+      },
+      "aiAliases": [
+        "tab bar",
+        "tabbar",
+        "bottom bar",
+        "bottom navigation",
+        "footer",
+        "alt menü",
+        "alt bar"
+      ]
+    },
+    {
+      "type": "image",
+      "displayName": "görsel",
+      "category": "Medya",
+      "paletteSymbol": "photo",
+      "placement": "free",
+      "defaultSize": {
+        "width": 200,
+        "height": 150
+      },
+      "minSize": {
+        "width": 24,
+        "height": 24
+      },
+      "defaultProperties": {
+        "symbolName": "photo",
+        "contentMode": "fit"
+      },
+      "aiAliases": [
+        "image",
+        "picture",
+        "photo",
+        "icon",
+        "avatar",
+        "placeholder",
+        "resim",
+        "görsel",
+        "fotoğraf",
+        "ikon"
+      ]
+    }
+  ]
+}

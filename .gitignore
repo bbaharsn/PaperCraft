@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# Xcode — kişisel ayarlar ve derleme çıktıları
+xcuserdata/
+DerivedData/
+build/
+*.xcresult
+
+# Gizli anahtarlar (ileride API anahtarı için)
+Secrets.xcconfig

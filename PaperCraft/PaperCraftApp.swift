@@ -9,6 +9,10 @@ import SwiftUI
 
 @main
 struct PaperCraftApp: App {
+    init() {
+        FontRegistrar.registerBundledFonts()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
