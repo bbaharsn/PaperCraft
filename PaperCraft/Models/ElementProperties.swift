@@ -28,9 +28,10 @@ nonisolated struct ElementProperties: Codable, Equatable {
     var shape: ButtonShape?
     var fill: ButtonFill?
 
-    // MARK: - Ortak görünüm (buton, metin kutusu)
+    // MARK: - Ortak görünüm (buton, metin kutusu, anahtar)
 
-    /// Ana renk, hex olarak: "#AC5135". Butonda dolgu, metin kutusunda kenarlık ve ikon rengi.
+    /// Ana renk, hex olarak: "#AC5135". Butonda dolgu, metin kutusunda kenarlık ve ikon,
+    /// anahtarda açıkken rengi.
     var fillColor: String?
     /// Yazı rengi, hex olarak. Butonda sadece dolu stilde kullanılır.
     var contentColor: String?
@@ -41,4 +42,8 @@ nonisolated struct ElementProperties: Codable, Equatable {
 
     var border: TextFieldBorder?
     var inputKind: TextFieldKind?
+
+    // MARK: - Anahtar görünümü
+
+    var labelPosition: SwitchLabelPosition?
 }

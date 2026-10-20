@@ -115,7 +115,10 @@
       },
       "defaultProperties": {
         "text": "Option",
-        "isOn": true
+        "isOn": true,
+        "fillColor": "#34C759",
+        "contentColor": "#111111",
+        "labelPosition": "leading"
       },
       "aiAliases": [
         "switch",

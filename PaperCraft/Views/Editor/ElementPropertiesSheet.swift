@@ -15,7 +15,7 @@ struct ElementPropertiesSheet: View {
 
     /// Özellikler sayfası olan türler. Yeni bir tür eklenince buraya ve `content`'e eklenir.
     static func hasSheet(for type: ElementType) -> Bool {
-        type == .button || type == .textField
+        type == .button || type == .textField || type == .switch
     }
 
     private var type: ElementType? {
@@ -46,6 +46,7 @@ struct ElementPropertiesSheet: View {
         switch type {
         case .button: ButtonPropertiesSheet(viewModel: viewModel)
         case .textField: TextFieldPropertiesSheet(viewModel: viewModel)
+        case .switch: SwitchPropertiesSheet(viewModel: viewModel)
         default: EmptyView()
         }
     }
@@ -54,6 +55,7 @@ struct ElementPropertiesSheet: View {
         switch type {
         case .button: "Buton"
         case .textField: "Metin Kutusu"
+        case .switch: "Anahtar"
         default: "Özellikler"
         }
     }

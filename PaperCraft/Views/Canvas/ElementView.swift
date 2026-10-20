@@ -29,7 +29,7 @@ struct ElementView: View {
                 .scaledToFit()
 
         case .switch:
-            Toggle(properties.text ?? "", isOn: .constant(properties.isOn ?? false))
+            SwitchElementView(properties: properties)
 
         case .slider:
             Slider(value: .constant(properties.value ?? 0.5))
