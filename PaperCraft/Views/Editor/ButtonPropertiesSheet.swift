@@ -10,6 +10,9 @@ import SwiftUI
 struct ButtonPropertiesSheet: View {
     let viewModel: EditorViewModel
 
+    /// "Bitti" sadece sayfayı kapatır; buton seçili kalır.
+    @Environment(\.dismiss) private var dismiss
+
     /// Hazır ana renkler (mavi, vurgu, siyah, yeşil, turuncu, kırmızı, mor).
     private let fillPresets = ["#007AFF", "#AC5135", "#111111", "#34C759", "#FF9500", "#FF3B30", "#5856D6"]
     /// Dolu butondaki yazı için hazır renkler.
@@ -30,8 +33,16 @@ struct ButtonPropertiesSheet: View {
                     TextField("Buton yazısı", text: binding(\.text, default: ""))
                 }
 
+                Section("Boyut") {
+                    HStack {
+                        sizeField("Genişlik", value: sizeBinding(\.width))
+                        Text("×").foregroundStyle(.secondary)
+                        sizeField("Yükseklik", value: sizeBinding(\.height))
+                    }
+                }
+
                 Section("Şekil") {
-                    segmented(binding(\.shape, default: .rounded), title: \.title)
+                    segmented(shapeBinding, title: \.title)
                     segmented(binding(\.fill, default: .filled), title: \.title)
                 }
 
@@ -62,7 +73,7 @@ struct ButtonPropertiesSheet: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Bitti") { viewModel.select(nil) }
+                    Button("Bitti") { dismiss() }
                 }
             }
         }
@@ -76,6 +87,44 @@ struct ButtonPropertiesSheet: View {
             get: { viewModel.selectedElement?.properties[keyPath: keyPath] ?? defaultValue },
             set: { newValue in viewModel.updateSelectedProperties { $0[keyPath: keyPath] = newValue } }
         )
+    }
+
+    /// Şekil ayrı ele alınır: daireye geçince çerçevenin de kareye dönmesi gerekir.
+    private var shapeBinding: Binding<ButtonShape> {
+        Binding(
+            get: { viewModel.selectedElement?.properties.shape ?? .rounded },
+            set: { viewModel.setSelectedButtonShape($0) }
+        )
+    }
+
+    /// Seçili elemanın genişliğine ya da yüksekliğine (point) bağlanan `Binding`.
+    private func sizeBinding(_ keyPath: KeyPath<CGSize, CGFloat>) -> Binding<Double> {
+        Binding(
+            get: {
+                guard let element = viewModel.selectedElement else { return 0 }
+                return Double(viewModel.pointRect(of: element).size[keyPath: keyPath].rounded())
+            },
+            set: { newValue in
+                guard let element = viewModel.selectedElement else { return }
+                var size = viewModel.pointRect(of: element).size
+                if keyPath == \CGSize.width { size.width = newValue } else { size.height = newValue }
+                viewModel.setSelectedSize(width: size.width, height: size.height)
+            }
+        )
+    }
+
+    /// Küçük başlıklı sayı kutusu. Değer "Bitti"ye (return) basınca uygulanır.
+    private func sizeField(_ title: String, value: Binding<Double>) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            TextField(title, value: value, format: .number.precision(.fractionLength(0)))
+                #if os(iOS)
+                .keyboardType(.numbersAndPunctuation)
+                #endif
+                .submitLabel(.done)
+        }
     }
 
     /// Bir enum'un tüm seçeneklerini yan yana bölmeli seçici olarak gösterir.

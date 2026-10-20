@@ -24,6 +24,16 @@ struct ButtonElementView: View {
     }
 
     var body: some View {
+        // Daire kare alana sığdırılır. Diğer şekillere `aspectRatio` uygulanmaz:
+        // `nil` oran bile içeriğin kendi oranına küçültür ve buton çerçeveyi doldurmaz.
+        if shape == .circle {
+            styledLabel.aspectRatio(1, contentMode: .fit)
+        } else {
+            styledLabel
+        }
+    }
+
+    private var styledLabel: some View {
         label
             .font(.system(size: 17, weight: .semibold))
             .foregroundStyle(labelColor)
@@ -31,7 +41,6 @@ struct ButtonElementView: View {
             .padding(.horizontal, shape == .circle ? 0 : 16)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background { background }
-            .aspectRatio(shape == .circle ? 1 : nil, contentMode: .fit)
     }
 
     /// Daire butonda yer dar: ikon varsa sadece ikon, yoksa sadece yazı gösterilir.
@@ -54,19 +63,10 @@ struct ButtonElementView: View {
     @ViewBuilder
     private var background: some View {
         switch fill {
-        case .filled: outline.fill(mainColor)
-        case .outline: outline.stroke(mainColor, lineWidth: 2)
-        case .tinted: outline.fill(mainColor.opacity(0.15))
+        case .filled: shape.outline.fill(mainColor)
+        case .outline: shape.outline.stroke(mainColor, lineWidth: 2)
+        case .tinted: shape.outline.fill(mainColor.opacity(0.15))
         case .plain: Color.clear
-        }
-    }
-
-    private var outline: AnyShape {
-        switch shape {
-        case .rectangle: AnyShape(Rectangle())
-        case .rounded: AnyShape(RoundedRectangle(cornerRadius: 12))
-        case .capsule: AnyShape(Capsule())
-        case .circle: AnyShape(Circle())
         }
     }
 }

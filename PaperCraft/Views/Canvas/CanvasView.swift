@@ -12,6 +12,8 @@ import SwiftUI
 /// küçültülür. Böylece yazılar dahil her şey orantılı küçülür.
 struct CanvasView: View {
     let viewModel: EditorViewModel
+    /// Bir elemana çift dokunulunca (seçildikten sonra) çağrılır; ör. Özellikler sayfasını açmak için.
+    var onDoubleTap: () -> Void = {}
 
     /// Şu an sürüklenen eleman ve parmağın ne kadar kaydığı (tuvalin kendi point'leri).
     /// Sürükleme bitene kadar model değişmez; sadece görüntü kayar.
@@ -53,15 +55,22 @@ struct CanvasView: View {
                     .allowsHitTesting(false)
                     .frame(width: frame.width * referenceSize.width,
                            height: frame.height * referenceSize.height)
+                    .contentShape(Rectangle())
+                    .onTapGesture(count: 2) {
+                        viewModel.select(element.id)
+                        onDoubleTap()
+                    }
+                    // Tek dokunuş beklemeden hemen seçsin diye çift dokunuşla aynı anda dinlenir.
+                    .simultaneousGesture(TapGesture().onEnded { viewModel.select(element.id) })
+                    .gesture(dragGesture(for: element, scale: scale))
+                    // Taşıma hareketinden sonra eklenir; böylece tutamaçlar kendi hareketini alır.
                     .overlay {
                         if isSelected {
-                            RoundedRectangle(cornerRadius: 4)
-                                .stroke(.blue, lineWidth: 2)
+                            SelectionOverlay(element: element, scale: scale) { corner, delta in
+                                viewModel.resizeElement(element.id, from: corner, by: delta)
+                            }
                         }
                     }
-                    .contentShape(Rectangle())
-                    .onTapGesture { viewModel.select(element.id) }
-                    .gesture(dragGesture(for: element, scale: scale))
                     .offset(element.id == draggingID ? dragOffset : .zero)
                     .position(x: (frame.x + frame.width / 2) * referenceSize.width,
                               y: (frame.y + frame.height / 2) * referenceSize.height)

@@ -12,17 +12,19 @@ struct ContentView: View {
     /// Alt katalog açık mı? Sadece bu ekranı ilgilendiren bir görünüm durumu.
     @State private var isCatalogOpen = false
 
+    /// Kullanıcı Özellikler sayfasını istedi mi (çift dokunuş)?
+    /// Tek dokunuş sadece seçer; böylece canvas küçülmeden taşınır ve boyutlandırılır.
+    @State private var wantsProperties = false
+
     /// Özellikler sayfasının yarım açıkken yüksekliği (point).
     private static let propertiesSheetHeight: CGFloat = 340
 
-    /// Seçili eleman bir buton mu? Öyleyse Özellikler sayfası açık durur.
-    /// Sayfa aşağı kaydırılıp kapatılırsa seçim de kalkar.
+    /// Sayfa, istendiğinde ve seçili eleman bir buton olduğunda açıktır.
+    /// Aşağı kaydırılıp ya da "Bitti" ile kapatılırsa seçim kalır, sadece sayfa kapanır.
     private var isEditingButton: Binding<Bool> {
         Binding(
-            get: { viewModel.selectedElement?.type == .button },
-            set: { isOpen in
-                if !isOpen { viewModel.select(nil) }
-            }
+            get: { wantsProperties && viewModel.selectedElement?.type == .button },
+            set: { wantsProperties = $0 }
         )
     }
 
@@ -36,7 +38,7 @@ struct ContentView: View {
                 },
                 onPreview: { /* T6'da önizleme açılacak */ }
             )
-            CanvasView(viewModel: viewModel)
+            CanvasView(viewModel: viewModel, onDoubleTap: { wantsProperties = true })
                 .padding()
                 // overlay: canvas'ın boyutunu değiştirmeden üstüne yüzer
                 .overlay(alignment: .bottom) {
@@ -63,6 +65,10 @@ struct ContentView: View {
             }
         }
         .background(Theme.background)
+        // Seçim tamamen kalkınca istek de sıfırlanır; yoksa sonraki tek dokunuş sayfayı açardı.
+        .onChange(of: viewModel.selectedElementID) { _, newID in
+            if newID == nil { wantsProperties = false }
+        }
         .sheet(isPresented: isEditingButton) {
             ButtonPropertiesSheet(viewModel: viewModel)
                 .presentationDetents([.height(Self.propertiesSheetHeight), .large])
