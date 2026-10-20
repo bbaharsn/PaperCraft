@@ -24,9 +24,21 @@ struct SelectionOverlay: View {
     /// Parmakla kolay yakalansın diye görünen tutamaçtan büyük dokunma alanı.
     private let handleHitSize: CGFloat = 36
 
-    /// Buton değilse `nil`; diğer elemanlar şimdilik düz dikdörtgen çerçeve alır.
+    /// Seçim çizgisinin saracağı şekil. Şekli olmayan elemanlar düz dikdörtgen çerçeve alır (`nil`).
+    /// Metin kutusu da kenarlığına göre buton şekillerinden birine eşlenir.
     private var buttonShape: ButtonShape? {
-        element.type == .button ? (element.properties.shape ?? .rounded) : nil
+        switch element.type {
+        case .button:
+            return element.properties.shape ?? .rounded
+        case .textField:
+            switch element.properties.border ?? .roundedBorder {
+            case .roundedBorder: return .rounded
+            case .capsule: return .capsule
+            case .underline, .none: return .rectangle
+            }
+        default:
+            return nil
+        }
     }
 
     var body: some View {

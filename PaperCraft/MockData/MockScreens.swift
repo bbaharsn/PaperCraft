@@ -26,6 +26,7 @@ enum MockScreens {
 
         var password = catalog.makeElement(of: .textField)
         password?.properties.placeholder = "Şifre"
+        password?.properties.inputKind = .secure
         password?.frame.y = 0.32
 
         var rememberMe = catalog.makeElement(of: .switch)

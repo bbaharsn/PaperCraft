@@ -21,8 +21,7 @@ struct ElementView: View {
             ButtonElementView(properties: properties)
 
         case .textField:
-            TextField(properties.placeholder ?? "", text: .constant(""))
-                .textFieldStyle(.roundedBorder)
+            TextFieldElementView(properties: properties)
 
         case .image:
             Image(systemName: properties.symbolName ?? "photo")

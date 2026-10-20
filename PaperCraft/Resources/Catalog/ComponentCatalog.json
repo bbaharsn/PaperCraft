@@ -81,7 +81,11 @@
       },
       "defaultProperties": {
         "placeholder": "Enter text",
-        "style": "roundedBorder"
+        "border": "roundedBorder",
+        "inputKind": "plain",
+        "fillColor": "#C7C7CC",
+        "contentColor": "#111111",
+        "iconPosition": "none"
       },
       "aiAliases": [
         "textfield",

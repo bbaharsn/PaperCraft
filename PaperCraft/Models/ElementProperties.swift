@@ -11,7 +11,6 @@ import Foundation
 nonisolated struct ElementProperties: Codable, Equatable {
     var text: String?
     var placeholder: String?
-    var style: String?
     var textStyle: String?
     var symbolName: String?
     var contentMode: String?
@@ -28,10 +27,18 @@ nonisolated struct ElementProperties: Codable, Equatable {
 
     var shape: ButtonShape?
     var fill: ButtonFill?
-    /// Ana renk, hex olarak: "#AC5135"
+
+    // MARK: - Ortak görünüm (buton, metin kutusu)
+
+    /// Ana renk, hex olarak: "#AC5135". Butonda dolgu, metin kutusunda kenarlık ve ikon rengi.
     var fillColor: String?
-    /// Dolu butondaki yazı ve ikon rengi, hex olarak
+    /// Yazı rengi, hex olarak. Butonda sadece dolu stilde kullanılır.
     var contentColor: String?
     /// İkonun yeri; hangi ikon olduğu `symbolName`'de durur.
     var iconPosition: IconPosition?
+
+    // MARK: - Metin kutusu görünümü
+
+    var border: TextFieldBorder?
+    var inputKind: TextFieldKind?
 }

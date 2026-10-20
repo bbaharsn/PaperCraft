@@ -19,11 +19,14 @@ struct ContentView: View {
     /// Özellikler sayfasının yarım açıkken yüksekliği (point).
     private static let propertiesSheetHeight: CGFloat = 340
 
-    /// Sayfa, istendiğinde ve seçili eleman bir buton olduğunda açıktır.
+    /// Sayfa, istendiğinde ve seçili elemanın bir Özellikler sayfası olduğunda açıktır.
     /// Aşağı kaydırılıp ya da "Bitti" ile kapatılırsa seçim kalır, sadece sayfa kapanır.
-    private var isEditingButton: Binding<Bool> {
+    private var isShowingProperties: Binding<Bool> {
         Binding(
-            get: { wantsProperties && viewModel.selectedElement?.type == .button },
+            get: {
+                guard wantsProperties, let type = viewModel.selectedElement?.type else { return false }
+                return ElementPropertiesSheet.hasSheet(for: type)
+            },
             set: { wantsProperties = $0 }
         )
     }
@@ -51,7 +54,7 @@ struct ContentView: View {
                     }
                 }
                 // Sayfa açıkken canvas yukarıda küçülür, böylece altında kalmaz.
-                .padding(.bottom, isEditingButton.wrappedValue ? Self.propertiesSheetHeight : 0)
+                .padding(.bottom, isShowingProperties.wrappedValue ? Self.propertiesSheetHeight : 0)
                 .animation(.snappy, value: viewModel.selectedElementID)
 
             if isCatalogOpen {
@@ -69,8 +72,8 @@ struct ContentView: View {
         .onChange(of: viewModel.selectedElementID) { _, newID in
             if newID == nil { wantsProperties = false }
         }
-        .sheet(isPresented: isEditingButton) {
-            ButtonPropertiesSheet(viewModel: viewModel)
+        .sheet(isPresented: isShowingProperties) {
+            ElementPropertiesSheet(viewModel: viewModel)
                 .presentationDetents([.height(Self.propertiesSheetHeight), .large])
                 .presentationDragIndicator(.visible)
                 // Sayfa açıkken de canvas'a dokunup başka eleman seçilebilsin.
