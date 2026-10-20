@@ -31,7 +31,7 @@ nonisolated struct ElementProperties: Codable, Equatable {
     // MARK: - Ortak görünüm (buton, metin kutusu, anahtar)
 
     /// Ana renk, hex olarak: "#AC5135". Butonda dolgu, metin kutusunda kenarlık ve ikon,
-    /// anahtarda açıkken rengi.
+    /// anahtarda açıkken rengi, kaydırıcıda dolu kısım.
     var fillColor: String?
     /// Yazı rengi, hex olarak. Butonda sadece dolu stilde kullanılır.
     var contentColor: String?
@@ -46,4 +46,15 @@ nonisolated struct ElementProperties: Codable, Equatable {
     // MARK: - Anahtar görünümü
 
     var labelPosition: SwitchLabelPosition?
+
+    // MARK: - Kaydırıcı görünümü
+
+    /// Çubuğun iki ucundaki ikonlar görünsün mü; ikonlar `minSymbolName` ve `maxSymbolName`'de.
+    var showsSideIcons: Bool?
+    /// Alt değer tarafındaki (sol) ikon
+    var minSymbolName: String?
+    /// Üst değer tarafındaki (sağ) ikon
+    var maxSymbolName: String?
+    /// Değer çubuğun sağında yazıyla gösterilsin mi
+    var showsValue: Bool?
 }

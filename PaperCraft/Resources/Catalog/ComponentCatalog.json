@@ -145,7 +145,12 @@
       "defaultProperties": {
         "value": 0.5,
         "minValue": 0,
-        "maxValue": 1
+        "maxValue": 1,
+        "fillColor": "#007AFF",
+        "showsSideIcons": false,
+        "minSymbolName": "minus",
+        "maxSymbolName": "plus",
+        "showsValue": false
       },
       "aiAliases": [
         "slider",

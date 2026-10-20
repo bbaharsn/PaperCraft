@@ -32,7 +32,7 @@ struct ElementView: View {
             SwitchElementView(properties: properties)
 
         case .slider:
-            Slider(value: .constant(properties.value ?? 0.5))
+            SliderElementView(properties: properties)
 
         case .navigationBar:
             Text(properties.text ?? "")

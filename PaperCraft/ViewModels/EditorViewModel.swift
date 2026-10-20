@@ -88,7 +88,7 @@ final class EditorViewModel {
         guard let index = screen.elements.firstIndex(where: { $0.id == id }) else { return }
         let element = screen.elements[index]
         let rect = pointRect(of: element)
-        let minSize = minimumSize(of: element.type)
+        let minSize = minimumSize(of: element)
 
         var left = rect.minX, right = rect.maxX, top = rect.minY, bottom = rect.maxY
         if corner.isLeading {
@@ -114,7 +114,7 @@ final class EditorViewModel {
         guard let index = screen.elements.firstIndex(where: { $0.id == selectedElementID }) else { return }
         let element = screen.elements[index]
         let rect = pointRect(of: element)
-        let minSize = minimumSize(of: element.type)
+        let minSize = minimumSize(of: element)
 
         var newWidth = min(max(width, minSize.width), canvasSize.width - rect.minX)
         var newHeight = min(max(height, minSize.height), canvasSize.height - rect.minY)
@@ -139,6 +139,53 @@ final class EditorViewModel {
                      at: index)
     }
 
+    // MARK: - Kaydırıcı
+
+    /// Seçili kaydırıcının yan ikonlarını açar/kapatır.
+    /// Çerçeve ikonlar kadar genişler ya da daralır; çubuğun kendi uzunluğu değişmez.
+    func setSelectedSliderShowsSideIcons(_ isOn: Bool) {
+        changeSliderParts { $0.showsSideIcons = isOn }
+    }
+
+    /// Seçili kaydırıcının değer yazısını açar/kapatır; çerçeve yazı kadar genişler ya da daralır.
+    func setSelectedSliderShowsValue(_ isOn: Bool) {
+        changeSliderParts { $0.showsValue = isOn }
+    }
+
+    /// Seçili kaydırıcının aralığını değiştirir. Alt sınır üst sınırdan küçük kalır
+    /// (eşit ya da büyük girilirse diğeri bir fazlası/eksiği olur); değer aralığın içine çekilir.
+    func setSelectedSliderRange(min lower: Double, max upper: Double) {
+        updateSelectedProperties { properties in
+            let changedLower = lower != properties.sliderRange.lowerBound
+            if lower >= upper {
+                properties.minValue = changedLower ? lower : upper - 1
+                properties.maxValue = changedLower ? lower + 1 : upper
+            } else {
+                properties.minValue = lower
+                properties.maxValue = upper
+            }
+            properties.value = properties.sliderValue
+        }
+    }
+
+    /// Kaydırıcının bir parçasını açıp kapatır ve aradaki genişlik farkını çerçeveye ekler.
+    /// Sol kenar yerinde kalır; ekrandan taşacaksa eleman sola kayar.
+    private func changeSliderParts(_ change: (inout ElementProperties) -> Void) {
+        guard let index = screen.elements.firstIndex(where: { $0.id == selectedElementID }),
+              screen.elements[index].type == .slider else { return }
+
+        let oldExtra = SliderLayout.extraWidth(for: screen.elements[index].properties)
+        change(&screen.elements[index].properties)
+        let newExtra = SliderLayout.extraWidth(for: screen.elements[index].properties)
+
+        let element = screen.elements[index]
+        var rect = pointRect(of: element)
+        rect.size.width = min(max(rect.width + newExtra - oldExtra, minimumSize(of: element).width),
+                              canvasSize.width)
+        rect.origin.x = min(rect.minX, canvasSize.width - rect.width)
+        setPointRect(rect, at: index)
+    }
+
     private func setPointRect(_ rect: CGRect, at index: Int) {
         screen.elements[index].frame = NormalizedFrame(x: rect.minX / canvasSize.width,
                                                        y: rect.minY / canvasSize.height,
@@ -147,11 +194,13 @@ final class EditorViewModel {
     }
 
     /// Katalogdaki en küçük boyut; katalogda yoksa Apple'ın önerdiği 44 pt dokunma alanı.
-    private func minimumSize(of type: ElementType) -> CGSize {
-        guard let minSize = catalog.definition(for: type)?.minSize else {
+    /// Kaydırıcıda açık ikon/değer yazısı varsa onlar da eklenir, çubuk ezilmesin.
+    private func minimumSize(of element: CanvasElement) -> CGSize {
+        guard let minSize = catalog.definition(for: element.type)?.minSize else {
             return CGSize(width: 44, height: 44)
         }
-        return CGSize(width: minSize.width, height: minSize.height)
+        let extra = element.type == .slider ? SliderLayout.extraWidth(for: element.properties) : 0
+        return CGSize(width: minSize.width + extra, height: minSize.height)
     }
 
     private func isCircleButton(_ element: CanvasElement) -> Bool {
