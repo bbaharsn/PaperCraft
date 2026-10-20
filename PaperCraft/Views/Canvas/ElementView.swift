@@ -18,8 +18,7 @@ struct ElementView: View {
                 .font(properties.textStyle == "largeTitle" ? .largeTitle.bold() : .body)
 
         case .button:
-            Button(properties.text ?? "Button") {}
-                .buttonStyle(.borderedProminent)
+            ButtonElementView(properties: properties)
 
         case .textField:
             TextField(properties.placeholder ?? "", text: .constant(""))

@@ -50,7 +50,11 @@
       },
       "defaultProperties": {
         "text": "Button",
-        "style": "filled"
+        "shape": "rounded",
+        "fill": "filled",
+        "fillColor": "#007AFF",
+        "contentColor": "#FFFFFF",
+        "iconPosition": "none"
       },
       "aiAliases": [
         "button",

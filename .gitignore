@@ -7,5 +7,8 @@ DerivedData/
 build/
 *.xcresult
 
+# Tasarım sohbeti taslakları (brainstorm)
+.superpowers/
+
 # Gizli anahtarlar (ileride API anahtarı için)
 Secrets.xcconfig

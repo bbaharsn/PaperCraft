@@ -28,8 +28,8 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 
 - [x] **Platform temizliği:** visionOS desteğini kaldır (Supported Destinations'dan Apple Vision çıkarılır).
 - [x] **Minimum sürüm:** iOS 17.6 / macOS 14.6'ya düşürüldü.
-- [ ] **Test target'ı:** Swift Testing ile bir birim test target'ı ekle.
-- [ ] **Gizli anahtarlar:** API anahtarları için git'e girmeyen bir `Secrets.xcconfig` dosyası ve `.gitignore` kuralı hazırla.
+- [x] **Test target'ı:** Swift Testing ile `PaperCraftTests` target'ı eklendi.
+- [ ] **Gizli anahtarlar:** API anahtarları için git'e girmeyen bir `Secrets.xcconfig` dosyası ve `.gitignore` kuralı hazırla. *(`.gitignore` kuralı var; dosyanın kendisi henüz yok.)*
 - [ ] **Swift dil modu:** Proje boşken Swift 6 moduna geçip geçmeyeceğine karar ver (varsayılan `MainActor` izolasyonu açık; ağ ve görüntü işleme ana thread dışında yapılmalı).
 
 ---
@@ -37,7 +37,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 ## Phase 1: Veri Mimarisi, JSON Kataloğu & AI Keşfi (Spike)
 > **Amaç:** Platformdan bağımsız veri modelini kurmak ve modelin AI'ın gerçekten üretebildiği çıktıya uygun olduğunu erkenden doğrulamak.
 
-- [ ] **Veri Modeli:**
+- [ ] **Veri Modeli:** *(Kısmen: `PrototypeScreen` → `CanvasElement[]`, `NormalizedFrame`, `ElementProperties`, `.unknown` yedeği hazır. Eksik: `Project`, `action`, `schemaVersion`. `zIndex` yerine dizi sırası kullanılıyor.)*
   * Hiyerarşi: `Project` → `Screen[]` → `Element[]`.
   * `Element`: `id`, `type`, `frame` (**normalize 0…1 koordinatlar**), `properties` (metin, ikon, stil), `zIndex`, opsiyonel `action` (ör. başka bir ekrana git).
   * Referans cihaz çerçevesi (ör. 393×852 pt); normalize koordinatlar ekranda bu çerçeveye göre çizilir.
@@ -45,12 +45,12 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
   * JSON'da `schemaVersion` alanı — eski kayıtlar ileride açılabilsin.
 - [x] **Eleman Kataloğu (JSON):** `Text`, `Button`, `TextField`, `Image`, `Switch`, `Slider`, `NavigationBar`, `TabBar` için varsayılan boyut, metin ve stil değerleri → `PaperCraft/Resources/Catalog/ComponentCatalog.json`.
 - [x] **SF Symbols Haritası (JSON):** 58 sık kullanılan ikon, Türkçe/İngilizce anahtar kelimelerle → `PaperCraft/Resources/Catalog/SymbolCatalog.json`.
-- [ ] **Katalog Swift Modelleri:** JSON'ları okuyan `Codable` modeller + çalışma anında sembol adı doğrulama; geçersizse `fallbackSymbol`'e düş.
+- [ ] **Katalog Swift Modelleri:** JSON'ları okuyan `Codable` modeller + çalışma anında sembol adı doğrulama; geçersizse `fallbackSymbol`'e düş. *(Kısmen: `ComponentCatalog` hazır ve test edildi. `SymbolCatalog` için Swift modeli henüz yok.)*
 - [ ] **Kalıcılık & iCloud Senkronizasyonu:**
   * SwiftData + CloudKit. `Project` ve `Screen` SwiftData kayıtları; eleman listesi kayıt içinde JSON verisi olarak saklanır (CloudKit kısıtlarıyla daha az sorun çıkarır).
   * CloudKit kuralları: tüm alanlar opsiyonel veya varsayılan değerli, `unique` kısıtı yok, ilişkiler opsiyonel.
 - [ ] **Geri Al / Yinele Altyapısı:** Model değişiklikleri tek bir noktadan geçer (`UndoManager` ile uyumlu).
-- [ ] **MVVM:** Model ve ViewModel'ler platformdan bağımsız; tüm cihazlar aynı katmanı kullanır.
+- [x] **MVVM:** Model ve ViewModel'ler platformdan bağımsız; tüm cihazlar aynı katmanı kullanır. *(`EditorViewModel`)*
 - [ ] **AI Spike (kod dışı deney):**
   * 10–15 gerçek el çizimi topla (bu set ileride doğruluk testi için sabit kalır).
   * Seçilen AI sağlayıcısına gönder, JSON çıktılarını incele: koordinat isabeti, tip doğruluğu, metin okuma.
@@ -87,10 +87,10 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 - [ ] **Uygulama İskeleti:**
   * Phase 2'deki tasarım token'larını koda aktar.
   * Gezinme yapısını `NavigationSplitView` ile kur (iPhone'da otomatik olarak tek sütunlu yığına dönüşür).
-- [ ] **Canvas:**
+- [ ] **Canvas:** *(Kısmen: `CanvasView` mock ekranı render ediyor, normalize ↔ nokta dönüşümü var. Yakınlaştırma ve kaydırma yok.)*
   * Mock JSON'u cihaz çerçevesi içinde render eden `CanvasView`.
   * Normalize koordinat ↔ ekran noktası dönüşümü; yakınlaştırma ve kaydırma.
-- [ ] **Seçim & Sürükleme:**
+- [x] **Seçim & Sürükleme:**
   * Dokunulan eleman `selectedElement` olur, etrafına çerçeve çizilir.
   * Sürükleme sırasında geçici durum (`@GestureState`); model ve geri al kaydı yalnızca sürükleme bitince güncellenir (performans).
 - [ ] **Düzenleme Araçları (Alt Panel):**

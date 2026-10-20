@@ -11,12 +11,20 @@ import Observation
 final class EditorViewModel {
     /// Hangi bileşenlerin eklenebileceğini bilen katalog (sadece okunur).
     let catalog: ComponentCatalog
+    /// İkon seçerken gösterilecek SF Symbol'ler (sadece okunur).
+    let symbolCatalog: SymbolCatalog
     var screen: PrototypeScreen
     var selectedElementID: UUID?
 
-    init(catalog: ComponentCatalog, screen: PrototypeScreen) {
+    init(catalog: ComponentCatalog, symbolCatalog: SymbolCatalog = .empty, screen: PrototypeScreen) {
         self.catalog = catalog
+        self.symbolCatalog = symbolCatalog
         self.screen = screen
+    }
+
+    /// Şu an seçili olan eleman; seçim yoksa `nil`.
+    var selectedElement: CanvasElement? {
+        screen.elements.first { $0.id == selectedElementID }
     }
 
     /// Bir elemanı seçer; `nil` verilirse seçimi kaldırır.
@@ -37,6 +45,13 @@ final class EditorViewModel {
         guard let id = selectedElementID else { return }
         screen.elements.removeAll { $0.id == id }
         selectedElementID = nil
+    }
+
+    /// Seçili elemanın özelliklerini değiştirir. Seçili eleman yoksa hiçbir şey yapmaz.
+    /// Kullanım: `updateSelectedProperties { $0.text = "Giriş Yap" }`
+    func updateSelectedProperties(_ change: (inout ElementProperties) -> Void) {
+        guard let index = screen.elements.firstIndex(where: { $0.id == selectedElementID }) else { return }
+        change(&screen.elements[index].properties)
     }
 
     /// Elemanı normalize miktarda (0...1) kaydırır; ekranın dışına taşmasını engeller.

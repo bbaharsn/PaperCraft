@@ -23,4 +23,15 @@ nonisolated struct ElementProperties: Codable, Equatable {
     var showsBackButton: Bool?
     var selectedIndex: Int?
     var items: [TabItem]?
+
+    // MARK: - Buton görünümü
+
+    var shape: ButtonShape?
+    var fill: ButtonFill?
+    /// Ana renk, hex olarak: "#AC5135"
+    var fillColor: String?
+    /// Dolu butondaki yazı ve ikon rengi, hex olarak
+    var contentColor: String?
+    /// İkonun yeri; hangi ikon olduğu `symbolName`'de durur.
+    var iconPosition: IconPosition?
 }

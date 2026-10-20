@@ -54,6 +54,27 @@ struct EditorViewModelTests {
         #expect(editor.screen.elements.count == 1)
     }
 
+    @Test func updatingPropertiesChangesOnlySelectedElement() throws {
+        let editor = try makeEditor()
+        editor.addElement(of: .button)
+        editor.addElement(of: .button)          // ikinci buton seçili
+
+        editor.updateSelectedProperties { $0.text = "Giriş Yap" }
+
+        #expect(editor.screen.elements.map(\.properties.text) == ["Button", "Giriş Yap"])
+        #expect(editor.selectedElement?.properties.text == "Giriş Yap")
+    }
+
+    @Test func updatingWithoutSelectionDoesNothing() throws {
+        let editor = try makeEditor()
+        editor.addElement(of: .button)
+        editor.select(nil)
+
+        editor.updateSelectedProperties { $0.text = "Değişmemeli" }
+
+        #expect(editor.screen.elements.first?.properties.text == "Button")
+    }
+
     @Test func movingElementStaysInsideScreen() throws {
         let editor = try makeEditor()
         editor.addElement(of: .button)
