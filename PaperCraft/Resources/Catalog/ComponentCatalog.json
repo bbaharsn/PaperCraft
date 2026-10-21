@@ -21,7 +21,12 @@
       },
       "defaultProperties": {
         "text": "Text",
-        "textStyle": "body"
+        "textStyle": "body",
+        "fontName": "System",
+        "fontWeight": "regular",
+        "isItalic": false,
+        "textAlignment": "leading",
+        "contentColor": "#111111"
       },
       "aiAliases": [
         "text",

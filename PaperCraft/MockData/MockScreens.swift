@@ -16,7 +16,8 @@ enum MockScreens {
 
         var title = catalog.makeElement(of: .text)
         title?.properties.text = "Hoş geldin"
-        title?.properties.textStyle = "largeTitle"
+        title?.properties.textStyle = .largeTitle
+        title?.properties.fontWeight = .bold
         title?.frame.y = 0.12
         title?.frame.height = 0.05
 

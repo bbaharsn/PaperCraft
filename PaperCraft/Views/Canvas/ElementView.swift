@@ -14,8 +14,7 @@ struct ElementView: View {
 
         switch element.type {
         case .text:
-            Text(properties.text ?? "")
-                .font(properties.textStyle == "largeTitle" ? .largeTitle.bold() : .body)
+            TextElementView(properties: properties)
 
         case .button:
             ButtonElementView(properties: properties)

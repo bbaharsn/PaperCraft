@@ -11,7 +11,7 @@ import Foundation
 nonisolated struct ElementProperties: Codable, Equatable {
     var text: String?
     var placeholder: String?
-    var textStyle: String?
+    var textStyle: TextFontStyle?
     var symbolName: String?
     var contentMode: String?
     var isOn: Bool?
@@ -28,12 +28,22 @@ nonisolated struct ElementProperties: Codable, Equatable {
     var shape: ButtonShape?
     var fill: ButtonFill?
 
-    // MARK: - Ortak görünüm (buton, metin kutusu, anahtar)
+    // MARK: - Metin görünümü
+
+    /// Yazı tipi ailesinin adı: "Avenir Next", "Georgia" ... `FontFamilies.system` ya da boşsa sistem yazı tipi.
+    /// Cihazda olmayan bir ad gelirse iOS sessizce sistem yazı tipine düşer.
+    var fontName: String?
+    var fontWeight: TextWeight?
+    /// Yazı eğik (italik) mi
+    var isItalic: Bool?
+    var textAlignment: TextAlign?
+
+    // MARK: - Ortak görünüm (buton, metin kutusu, anahtar, metin)
 
     /// Ana renk, hex olarak: "#AC5135". Butonda dolgu, metin kutusunda kenarlık ve ikon,
     /// anahtarda açıkken rengi, kaydırıcıda dolu kısım.
     var fillColor: String?
-    /// Yazı rengi, hex olarak. Butonda sadece dolu stilde kullanılır.
+    /// Yazı rengi, hex olarak. Butonda sadece dolu stilde kullanılır; metinde yazının kendisi.
     var contentColor: String?
     /// İkonun yeri; hangi ikon olduğu `symbolName`'de durur.
     var iconPosition: IconPosition?
