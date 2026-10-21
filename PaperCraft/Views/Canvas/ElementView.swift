@@ -34,10 +34,7 @@ struct ElementView: View {
             SliderElementView(properties: properties)
 
         case .navigationBar:
-            Text(properties.text ?? "")
-                .font(.headline)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(.bar)
+            NavigationBarElementView(properties: properties)
 
         case .tabBar:
             HStack {

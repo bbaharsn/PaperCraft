@@ -18,7 +18,7 @@ nonisolated struct ElementProperties: Codable, Equatable {
     var value: Double?
     var minValue: Double?
     var maxValue: Double?
-    var titleDisplayMode: String?
+    var titleDisplayMode: NavigationTitleMode?
     var showsBackButton: Bool?
     var selectedIndex: Int?
     var items: [TabItem]?
@@ -30,20 +30,37 @@ nonisolated struct ElementProperties: Codable, Equatable {
 
     // MARK: - Metin görünümü
 
-    /// Yazı tipi ailesinin adı: "Avenir Next", "Georgia" ... `FontFamilies.system` ya da boşsa sistem yazı tipi.
+    /// Yazı tipi ailesinin adı (metin ve üst bar başlığı): "Avenir Next", "Georgia" ... `FontFamilies.system` ya da boşsa sistem yazı tipi.
     /// Cihazda olmayan bir ad gelirse iOS sessizce sistem yazı tipine düşer.
     var fontName: String?
     var fontWeight: TextWeight?
     /// Yazı eğik (italik) mi
     var isItalic: Bool?
+    /// Metnin ya da üst bar başlığının yatay yeri
     var textAlignment: TextAlign?
 
-    // MARK: - Ortak görünüm (buton, metin kutusu, anahtar, metin)
+    // MARK: - Üst bar görünümü
+
+    /// Geri okunun yanındaki yazı ("Geri"); boşsa sadece ok görünür.
+    var backTitle: String?
+    /// Sağdaki buton; ikon olursa hangi ikon olduğu `symbolName`'de durur.
+    var trailingItem: NavigationTrailingItem?
+    /// Sağdaki butonun yazısı ("Düzenle")
+    var trailingText: String?
+    /// Geri ve sağ butonun rengi, hex olarak.
+    var tintColor: String?
+    /// Barın altındaki ince ayırıcı çizgi görünsün mü
+    var showsDivider: Bool?
+    /// Bar uzatılınca başlığın dikey yeri; yatay yeri `textAlignment`'ta durur.
+    var verticalAlignment: VerticalAlign?
+
+    // MARK: - Ortak görünüm (buton, metin kutusu, anahtar, metin, üst bar)
 
     /// Ana renk, hex olarak: "#AC5135". Butonda dolgu, metin kutusunda kenarlık ve ikon,
-    /// anahtarda açıkken rengi, kaydırıcıda dolu kısım.
+    /// anahtarda açıkken rengi, kaydırıcıda dolu kısım, üst barda arka plan.
     var fillColor: String?
-    /// Yazı rengi, hex olarak. Butonda sadece dolu stilde kullanılır; metinde yazının kendisi.
+    /// Yazı rengi, hex olarak. Butonda sadece dolu stilde kullanılır; metinde yazının kendisi,
+    /// üst barda başlık.
     var contentColor: String?
     /// İkonun yeri; hangi ikon olduğu `symbolName`'de durur.
     var iconPosition: IconPosition?

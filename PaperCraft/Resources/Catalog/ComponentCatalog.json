@@ -181,7 +181,18 @@
       "defaultProperties": {
         "text": "Title",
         "titleDisplayMode": "inline",
-        "showsBackButton": false
+        "showsBackButton": false,
+        "backTitle": "",
+        "fontName": "System",
+        "trailingItem": "none",
+        "symbolName": "plus",
+        "trailingText": "Edit",
+        "fillColor": "#F9F9F9",
+        "contentColor": "#111111",
+        "tintColor": "#007AFF",
+        "showsDivider": true,
+        "textAlignment": "center",
+        "verticalAlignment": "center"
       },
       "aiAliases": [
         "navigation bar",

@@ -139,6 +139,23 @@ final class EditorViewModel {
                      at: index)
     }
 
+    // MARK: - Üst bar
+
+    /// Seçili üst barın başlık türünü değiştirir; bar yeni türün yüksekliğine uzar ya da kısalır.
+    /// Başlığın yeri de o türün alışılmış yerine döner (küçük: ortada, büyük: sol altta).
+    /// Üst kenar yerinde kalır.
+    func setSelectedNavigationTitleMode(_ mode: NavigationTitleMode) {
+        guard let index = screen.elements.firstIndex(where: { $0.id == selectedElementID }),
+              screen.elements[index].type == .navigationBar else { return }
+        screen.elements[index].properties.titleDisplayMode = mode
+        screen.elements[index].properties.textAlignment = mode.defaultAlignment
+        screen.elements[index].properties.verticalAlignment = mode.defaultVerticalAlignment
+
+        var rect = pointRect(of: screen.elements[index])
+        rect.size.height = mode.barHeight
+        setPointRect(rect, at: index)
+    }
+
     // MARK: - Kaydırıcı
 
     /// Seçili kaydırıcının yan ikonlarını açar/kapatır.
@@ -195,12 +212,17 @@ final class EditorViewModel {
 
     /// Katalogdaki en küçük boyut; katalogda yoksa Apple'ın önerdiği 44 pt dokunma alanı.
     /// Kaydırıcıda açık ikon/değer yazısı varsa onlar da eklenir, çubuk ezilmesin.
+    /// Büyük başlıklı üst bar, başlığı sığacak kadar yüksek kalır.
     private func minimumSize(of element: CanvasElement) -> CGSize {
         guard let minSize = catalog.definition(for: element.type)?.minSize else {
             return CGSize(width: 44, height: 44)
         }
         let extra = element.type == .slider ? SliderLayout.extraWidth(for: element.properties) : 0
-        return CGSize(width: minSize.width + extra, height: minSize.height)
+        var height = minSize.height
+        if element.type == .navigationBar, let mode = element.properties.titleDisplayMode {
+            height = max(height, mode.barHeight)
+        }
+        return CGSize(width: minSize.width + extra, height: height)
     }
 
     private func isCircleButton(_ element: CanvasElement) -> Bool {

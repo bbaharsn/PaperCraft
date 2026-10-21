@@ -12,10 +12,6 @@ struct TextPropertiesSheet: View {
     /// Yazı için hazır renkler (siyah, koyu kahve, gri, vurgu, mavi, beyaz).
     private let textPresets = ["#111111", "#2B2118", "#8E8E93", "#AC5135", "#007AFF", "#FFFFFF"]
 
-    private var fontName: Binding<String> {
-        viewModel.binding(\.fontName, default: FontFamilies.system)
-    }
-
     var body: some View {
         Section("Metin") {
             TextField("Örn. Hoş geldin", text: viewModel.binding(\.text, default: ""), axis: .vertical)
@@ -26,22 +22,12 @@ struct TextPropertiesSheet: View {
         }
 
         Section("Yazı Tipi") {
-            NavigationLink {
-                FontPickerList(fontName: fontName)
-            } label: {
-                Text(FontFamilies.title(of: fontName.wrappedValue))
-                    .font(TextElementView.font(named: fontName.wrappedValue, style: .body))
-            }
+            FontPickerRow(fontName: viewModel.binding(\.fontName, default: FontFamilies.system))
         }
 
         Section("Kalınlık ve Eğim") {
             OptionPicker(selection: viewModel.binding(\.fontWeight, default: .regular), title: \.title)
-            Picker("", selection: viewModel.binding(\.isItalic, default: false)) {
-                Text("Düz").tag(false)
-                Text("İtalik").italic().tag(true)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            BoolPicker(isOn: viewModel.binding(\.isItalic, default: false), off: "Düz", on: "İtalik")
         }
 
         Section("Hizalama") {
