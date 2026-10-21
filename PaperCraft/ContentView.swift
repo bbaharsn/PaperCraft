@@ -13,7 +13,7 @@ struct ContentView: View {
     @State private var isCatalogOpen = false
 
     /// Kullanıcı Özellikler sayfasını istedi mi (çift dokunuş)?
-    /// Tek dokunuş sadece seçer; böylece canvas küçülmeden taşınır ve boyutlandırılır.
+    /// Tek dokunuş sadece seçer; sayfa açılmadan taşınır ve boyutlandırılır.
     @State private var wantsProperties = false
 
     /// Özellikler sayfasının yarım açıkken yüksekliği (point).
@@ -41,7 +41,12 @@ struct ContentView: View {
                 },
                 onPreview: { /* T6'da önizleme açılacak */ }
             )
-            CanvasView(viewModel: viewModel, onDoubleTap: { wantsProperties = true })
+            // Canvas yukarı kaydığında üst barın altından geçsin, üstüne binmesin
+            .zIndex(1)
+            CanvasView(viewModel: viewModel,
+                       onDoubleTap: { wantsProperties = true },
+                       // Sayfa açıkken canvas küçülmez; seçili eleman sayfanın altında kalırsa yukarı kayar.
+                       bottomInset: isShowingProperties.wrappedValue ? Self.propertiesSheetHeight : 0)
                 .padding()
                 // overlay: canvas'ın boyutunu değiştirmeden üstüne yüzer
                 .overlay(alignment: .bottom) {
@@ -53,9 +58,8 @@ struct ContentView: View {
                         .transition(.scale.combined(with: .opacity))
                     }
                 }
-                // Sayfa açıkken canvas yukarıda küçülür, böylece altında kalmaz.
-                .padding(.bottom, isShowingProperties.wrappedValue ? Self.propertiesSheetHeight : 0)
                 .animation(.snappy, value: viewModel.selectedElementID)
+                .animation(.snappy, value: wantsProperties)
 
             if isCatalogOpen {
                 CatalogPanel(

@@ -14,6 +14,9 @@ struct CanvasView: View {
     let viewModel: EditorViewModel
     /// Bir elemana çift dokunulunca (seçildikten sonra) çağrılır; ör. Özellikler sayfasını açmak için.
     var onDoubleTap: () -> Void = {}
+    /// Alttan bir sayfanın kapattığı yükseklik (point). Tuval küçülmez; seçili eleman
+    /// bu alanın altında kalacaksa tuval o eleman görünene kadar yukarı kayar.
+    var bottomInset: CGFloat = 0
 
     /// Şu an sürüklenen eleman ve parmağın ne kadar kaydığı (tuvalin kendi point'leri).
     /// Sürükleme bitene kadar model değişmez; sadece görüntü kayar.
@@ -40,8 +43,26 @@ struct CanvasView: View {
                 .clipShape(RoundedRectangle(cornerRadius: Theme.cornerRadius))
                 .paperCard()
                 .overlay(alignment: .topLeading) { tape }
+                .offset(y: -liftForSelection(in: geometry.size, scale: scale))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+    }
+
+    /// Seçili elemanın alttaki sayfanın üstünde görünmesi için tuvalin ne kadar
+    /// yukarı kayması gerektiği (ekran point'i). Eleman zaten görünüyorsa 0.
+    private func liftForSelection(in available: CGSize, scale: CGFloat) -> CGFloat {
+        guard bottomInset > 0, let element = viewModel.selectedElement else { return 0 }
+        let margin: CGFloat = 16
+
+        // Tuval alanın ortasına yerleşiyor; elemanın ekrandaki üst ve alt kenarı
+        let cardTop = (available.height - referenceSize.height * scale) / 2
+        let elementTop = cardTop + element.frame.y * referenceSize.height * scale
+        let elementBottom = elementTop + element.frame.height * referenceSize.height * scale
+
+        let visibleBottom = available.height - bottomInset - margin
+        let needed = elementBottom - visibleBottom
+        // Eleman çok uzunsa üst kenarı ekrandan çıkacak kadar kaydırma
+        return max(0, min(needed, elementTop - margin))
     }
 
     /// Tüm elemanlar, gerçek iPhone point'leriyle yerleştirilmiş halde.
