@@ -156,6 +156,50 @@ final class EditorViewModel {
         setPointRect(rect, at: index)
     }
 
+    // MARK: - Alt menü
+
+    /// Seçili alt menünün sonuna yeni bir sekme ekler. Sekme sayısı üst sınırdaysa hiçbir şey yapmaz.
+    func addSelectedTab() {
+        updateSelectedTabItems { items, _ in
+            guard items.count < TabItem.allowedCount.upperBound else { return }
+            items.append(TabItem(text: "Tab \(items.count + 1)", symbolName: "star"))
+        }
+    }
+
+    /// Seçili alt menüden bir sekmeyi siler; alt sınırın altına inmez.
+    /// Seçili sekme silinirse yanındaki seçili olur, seçim hep aynı sekmede kalır.
+    func removeSelectedTab(at index: Int) {
+        updateSelectedTabItems { items, selectedIndex in
+            guard items.count > TabItem.allowedCount.lowerBound, items.indices.contains(index) else { return }
+            items.remove(at: index)
+            if index < selectedIndex {
+                selectedIndex -= 1
+            }
+            selectedIndex = min(selectedIndex, items.count - 1)
+        }
+    }
+
+    /// Seçili alt menüdeki bir sekmenin yazısını ya da ikonunu değiştirir.
+    /// Kullanım: `updateSelectedTab(at: 0) { $0.text = "Ana Sayfa" }`
+    func updateSelectedTab(at index: Int, _ change: (inout TabItem) -> Void) {
+        updateSelectedTabItems { items, _ in
+            guard items.indices.contains(index) else { return }
+            change(&items[index])
+        }
+    }
+
+    /// Seçili eleman alt menüyse sekmelerini ve seçili sekmeyi birlikte değiştirir.
+    private func updateSelectedTabItems(_ change: (inout [TabItem], inout Int) -> Void) {
+        guard selectedElement?.type == .tabBar else { return }
+        updateSelectedProperties { properties in
+            var items = properties.items ?? []
+            var selectedIndex = properties.selectedIndex ?? 0
+            change(&items, &selectedIndex)
+            properties.items = items
+            properties.selectedIndex = selectedIndex
+        }
+    }
+
     // MARK: - Kaydırıcı
 
     /// Seçili kaydırıcının yan ikonlarını açar/kapatır.

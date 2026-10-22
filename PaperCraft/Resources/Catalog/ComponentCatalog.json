@@ -216,7 +216,7 @@
         "height": 83
       },
       "minSize": {
-        "width": 393,
+        "width": 160,
         "height": 49
       },
       "defaultProperties": {
@@ -234,7 +234,14 @@
             "text": "Profile",
             "symbolName": "person"
           }
-        ]
+        ],
+        "showsLabels": true,
+        "fillColor": "#F9F9F9",
+        "tintColor": "#007AFF",
+        "contentColor": "#8E8E93",
+        "showsDivider": true,
+        "tabBarCorner": "square",
+        "isTranslucent": false
       },
       "aiAliases": [
         "tab bar",

@@ -84,4 +84,15 @@ nonisolated struct ElementProperties: Codable, Equatable {
     var maxSymbolName: String?
     /// Değer çubuğun sağında yazıyla gösterilsin mi
     var showsValue: Bool?
+
+    // MARK: - Alt menü görünümü
+    // Arka plan `fillColor`, seçili sekme `tintColor`, diğer sekmeler `contentColor`,
+    // üstteki ince çizgi `showsDivider`'da durur.
+
+    /// Sekmelerin altında yazıları görünsün mü; kapalıysa sadece ikonlar.
+    var showsLabels: Bool?
+    /// Köşeli bar klasik alt menü gibi çizilir; yuvarlak ya da hap bar iOS 26'daki yüzen alt menü gibi.
+    var tabBarCorner: TabBarCorner?
+    /// Arka plan saydam mı: arkadaki içerik bulanık görünür (cam görünüm).
+    var isTranslucent: Bool?
 }

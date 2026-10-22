@@ -36,6 +36,8 @@ struct SelectionOverlay: View {
             case .capsule: return .capsule
             case .underline, .none: return .rectangle
             }
+        case .tabBar:
+            return (element.properties.tabBarCorner ?? .square).buttonShape
         default:
             return nil
         }

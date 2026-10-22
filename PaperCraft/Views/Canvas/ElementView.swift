@@ -37,17 +37,7 @@ struct ElementView: View {
             NavigationBarElementView(properties: properties)
 
         case .tabBar:
-            HStack {
-                ForEach(properties.items ?? [], id: \.text) { item in
-                    VStack {
-                        Image(systemName: item.symbolName)
-                        Text(item.text).font(.caption2)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-            }
-            .frame(maxHeight: .infinity)
-            .background(.bar)
+            TabBarElementView(properties: properties)
 
         case .unknown:
             Image(systemName: "questionmark.square.dashed")
