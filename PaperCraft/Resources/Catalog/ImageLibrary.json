@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "images": [
+    { "name": "hot_beverage", "title": "Kahve", "keywords": ["coffee", "tea", "hot drink", "kahve", "çay", "sıcak içecek"] },
+    { "name": "teacup_without_handle", "title": "Çay", "keywords": ["tea", "green tea", "cup", "çay", "fincan"] },
+    { "name": "bubble_tea", "title": "Bubble tea", "keywords": ["bubble tea", "boba", "milk tea", "içecek"] },
+    { "name": "cup_with_straw", "title": "Pipetli bardak", "keywords": ["soda", "soft drink", "iced coffee", "smoothie", "soğuk içecek", "pipet"] },
+    { "name": "glass_of_milk", "title": "Süt", "keywords": ["milk", "glass", "süt", "bardak"] },
+    { "name": "tropical_drink", "title": "Kokteyl", "keywords": ["cocktail", "tropical", "juice", "kokteyl", "meyve suyu"] },
+    { "name": "beverage_box", "title": "Meyve suyu kutusu", "keywords": ["juice box", "drink", "meyve suyu", "kutu"] },
+    { "name": "croissant", "title": "Kruvasan", "keywords": ["croissant", "bakery", "breakfast", "kruvasan", "fırın", "kahvaltı"] },
+    { "name": "bagel", "title": "Simit", "keywords": ["bagel", "bakery", "breakfast", "simit", "fırın"] },
+    { "name": "bread", "title": "Ekmek", "keywords": ["bread", "bakery", "loaf", "ekmek", "fırın"] },
+    { "name": "pancakes", "title": "Pankek", "keywords": ["pancakes", "breakfast", "pankek", "kahvaltı"] },
+    { "name": "waffle", "title": "Waffle", "keywords": ["waffle", "dessert", "breakfast", "tatlı"] },
+    { "name": "doughnut", "title": "Donut", "keywords": ["donut", "doughnut", "dessert", "tatlı"] },
+    { "name": "cookie", "title": "Kurabiye", "keywords": ["cookie", "biscuit", "kurabiye", "bisküvi"] },
+    { "name": "shortcake", "title": "Pasta dilimi", "keywords": ["cake", "slice", "dessert", "pasta", "tatlı"] },
+    { "name": "birthday_cake", "title": "Doğum günü pastası", "keywords": ["birthday", "cake", "party", "doğum günü", "pasta", "kutlama"] },
+    { "name": "cupcake", "title": "Cupcake", "keywords": ["cupcake", "muffin", "dessert", "kek", "tatlı"] },
+    { "name": "soft_ice_cream", "title": "Külah dondurma", "keywords": ["ice cream", "cone", "dondurma", "külah"] },
+    { "name": "ice_cream", "title": "Kase dondurma", "keywords": ["ice cream", "sundae", "dessert", "dondurma", "tatlı"] },
+    { "name": "chocolate_bar", "title": "Çikolata", "keywords": ["chocolate", "candy", "çikolata", "şeker"] },
+    { "name": "pizza", "title": "Pizza", "keywords": ["pizza", "fast food", "restaurant", "restoran"] },
+    { "name": "hamburger", "title": "Hamburger", "keywords": ["burger", "hamburger", "fast food", "restoran"] },
+    { "name": "sandwich", "title": "Sandviç", "keywords": ["sandwich", "lunch", "sandviç", "öğle yemeği"] },
+    { "name": "taco", "title": "Taco", "keywords": ["taco", "mexican", "fast food", "meksika"] },
+    { "name": "green_salad", "title": "Salata", "keywords": ["salad", "healthy", "vegan", "salata", "sağlıklı"] },
+    { "name": "red_apple", "title": "Elma", "keywords": ["apple", "fruit", "healthy", "elma", "meyve"] },
+    { "name": "strawberry", "title": "Çilek", "keywords": ["strawberry", "fruit", "berry", "çilek", "meyve"] },
+    { "name": "avocado", "title": "Avokado", "keywords": ["avocado", "healthy", "vegan", "avokado", "sağlıklı"] }
+  ]
+}

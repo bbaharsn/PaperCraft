@@ -269,7 +269,9 @@
       },
       "defaultProperties": {
         "symbolName": "photo",
-        "contentMode": "fit"
+        "contentMode": "fit",
+        "imageColorMode": "original",
+        "tintColor": "#111111"
       },
       "aiAliases": [
         "image",

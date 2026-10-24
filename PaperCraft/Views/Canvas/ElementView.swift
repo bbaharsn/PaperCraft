@@ -23,9 +23,7 @@ struct ElementView: View {
             TextFieldElementView(properties: properties)
 
         case .image:
-            Image(systemName: properties.symbolName ?? "photo")
-                .resizable()
-                .scaledToFit()
+            ImageElementView(properties: properties)
 
         case .switch:
             SwitchElementView(properties: properties)

@@ -92,8 +92,10 @@ struct ContentView: View {
             return EditorViewModel(catalog: .empty, screen: PrototypeScreen(name: "Boş Ekran"))
         }
         let symbols = (try? SymbolCatalog.load()) ?? .empty
+        let images = (try? ImageLibrary.load()) ?? .empty
         return EditorViewModel(catalog: catalog,
                                symbolCatalog: symbols,
+                               imageLibrary: images,
                                screen: MockScreens.login(using: catalog))
     }
 }

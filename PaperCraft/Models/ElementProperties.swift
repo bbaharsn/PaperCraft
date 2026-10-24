@@ -47,7 +47,8 @@ nonisolated struct ElementProperties: Codable, Equatable {
     var trailingItem: NavigationTrailingItem?
     /// Sağdaki butonun yazısı ("Düzenle")
     var trailingText: String?
-    /// Geri ve sağ butonun rengi, hex olarak.
+    /// Vurgu rengi, hex olarak: üst barda geri ve sağ buton, alt menüde seçili sekme,
+    /// görselde tek renk halinin rengi.
     var tintColor: String?
     /// Barın altındaki ince ayırıcı çizgi görünsün mü
     var showsDivider: Bool?
@@ -95,4 +96,12 @@ nonisolated struct ElementProperties: Codable, Equatable {
     var tabBarCorner: TabBarCorner?
     /// Arka plan saydam mı: arkadaki içerik bulanık görünür (cam görünüm).
     var isTranslucent: Bool?
+
+    // MARK: - Görsel görünümü
+    // Tek renk halinin rengi `tintColor`'da, görsel seçilmemişken çizilen ikon `symbolName`'de durur.
+
+    /// Görsel kütüphanesindeki adı ("hot_beverage"); boşsa yer tutucu ikon görünür.
+    var imageName: String?
+    /// Görsel renkli mi, tek renk mi çizilsin.
+    var imageColorMode: ImageColorMode?
 }

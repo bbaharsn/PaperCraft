@@ -14,12 +14,16 @@ final class EditorViewModel {
     let catalog: ComponentCatalog
     /// İkon seçerken gösterilecek SF Symbol'ler (sadece okunur).
     let symbolCatalog: SymbolCatalog
+    /// Görsel seçerken gösterilecek hazır görseller (sadece okunur).
+    let imageLibrary: ImageLibrary
     var screen: PrototypeScreen
     var selectedElementID: UUID?
 
-    init(catalog: ComponentCatalog, symbolCatalog: SymbolCatalog = .empty, screen: PrototypeScreen) {
+    init(catalog: ComponentCatalog, symbolCatalog: SymbolCatalog = .empty,
+         imageLibrary: ImageLibrary = .empty, screen: PrototypeScreen) {
         self.catalog = catalog
         self.symbolCatalog = symbolCatalog
+        self.imageLibrary = imageLibrary
         self.screen = screen
     }
 

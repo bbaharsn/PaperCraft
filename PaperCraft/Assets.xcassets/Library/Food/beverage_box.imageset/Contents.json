@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "beverage_box.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
