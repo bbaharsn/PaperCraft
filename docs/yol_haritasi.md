@@ -37,7 +37,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 ## Phase 1: Veri Mimarisi, JSON Kataloğu & AI Keşfi (Spike)
 > **Amaç:** Platformdan bağımsız veri modelini kurmak ve modelin AI'ın gerçekten üretebildiği çıktıya uygun olduğunu erkenden doğrulamak.
 
-- [ ] **Veri Modeli:** *(Kısmen: `PrototypeScreen` → `CanvasElement[]`, `NormalizedFrame`, `ElementProperties`, `.unknown` yedeği hazır. Eksik: `Project`, `action`, `schemaVersion`. `zIndex` yerine dizi sırası kullanılıyor.)*
+- [ ] **Veri Modeli:** *(Kısmen: `Project` → `ScreenRecord` → `PrototypeScreen` → `CanvasElement[]`, `NormalizedFrame`, `ElementProperties`, `.unknown` yedeği ve kayıtta `schemaVersion` hazır. Eksik: `action`. `zIndex` yerine dizi sırası kullanılıyor.)*
   * Hiyerarşi: `Project` → `Screen[]` → `Element[]`.
   * `Element`: `id`, `type`, `frame` (**normalize 0…1 koordinatlar**), `properties` (metin, ikon, stil), `zIndex`, opsiyonel `action` (ör. başka bir ekrana git).
   * Referans cihaz çerçevesi (ör. 393×852 pt); normalize koordinatlar ekranda bu çerçeveye göre çizilir.
@@ -45,7 +45,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
   * JSON'da `schemaVersion` alanı — eski kayıtlar ileride açılabilsin.
 - [x] **Eleman Kataloğu (JSON):** `Text`, `Button`, `TextField`, `Image`, `Switch`, `Slider`, `NavigationBar`, `TabBar` için varsayılan boyut, metin ve stil değerleri → `PaperCraft/Resources/Catalog/ComponentCatalog.json`.
 - [x] **SF Symbols Haritası (JSON):** 58 sık kullanılan ikon, Türkçe/İngilizce anahtar kelimelerle → `PaperCraft/Resources/Catalog/SymbolCatalog.json`.
-- [ ] **Katalog Swift Modelleri:** JSON'ları okuyan `Codable` modeller + çalışma anında sembol adı doğrulama; geçersizse `fallbackSymbol`'e düş. *(Kısmen: `ComponentCatalog` hazır ve test edildi. `SymbolCatalog` için Swift modeli henüz yok.)*
+- [ ] **Katalog Swift Modelleri:** JSON'ları okuyan `Codable` modeller + çalışma anında sembol adı doğrulama; geçersizse `fallbackSymbol`'e düş. *(Kısmen: `ComponentCatalog`, `SymbolCatalog` ve `ImageLibrary` modelleri hazır ve test edildi. Eksik: sembol adını çalışma anında doğrulayıp `fallbackSymbol`'e düşme henüz kullanılmıyor.)*
 - [ ] **Kalıcılık & iCloud Senkronizasyonu:** *(Kısmen: SwiftData hazır — `Project` ve `ScreenRecord` iCloud kurallarına uygun, ekran JSON olarak saklanıyor, `schemaVersion` var. Eksik: CloudKit'i açmak; yüklenen fotoğraflar şu an sadece cihazda.)*
   * SwiftData + CloudKit. `Project` ve `Screen` SwiftData kayıtları; eleman listesi kayıt içinde JSON verisi olarak saklanır (CloudKit kısıtlarıyla daha az sorun çıkarır).
   * CloudKit kuralları: tüm alanlar opsiyonel veya varsayılan değerli, `unique` kısıtı yok, ilişkiler opsiyonel.
@@ -55,7 +55,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
   * 10–15 gerçek el çizimi topla (bu set ileride doğruluk testi için sabit kalır).
   * Seçilen AI sağlayıcısına gönder, JSON çıktılarını incele: koordinat isabeti, tip doğruluğu, metin okuma.
   * Sonuçlara göre veri şemasını kesinleştir.
-- [ ] **Testler:** JSON encode/decode, bilinmeyen tip, eski şema sürümü için birim testleri.
+- [ ] **Testler:** JSON encode/decode, bilinmeyen tip, eski şema sürümü için birim testleri. *(Kısmen: 96 test; bilinmeyen tip ve bilinmeyen değerlerin varsayılana düşmesi, bozuk kaydın boş ekran olarak açılması test ediliyor. Eksik: eski `schemaVersion`'lı bir kaydı açma testi — ilk şema değişikliğinde yazılacak.)*
 
 ---
 
@@ -84,19 +84,20 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 ## Phase 3: iPhone Uygulaması — Canvas & Editör
 > **Amaç:** iPhone'da çalışan dinamik tuval ve düzenleme altyapısını kurmak. Yapı baştan adaptif kurulur ki iPad ve Mac'te yeniden yazılmasın.
 
-- [ ] **Uygulama İskeleti:**
+- [ ] **Uygulama İskeleti:** *(Kısmen: renkler, ölçüler ve logo fontu `Theme`'de; Projelerim → Editör gezinmesi `NavigationStack` ile çalışıyor. Eksik: Phase 2 tasarım onayı, iPad için `NavigationSplitView`.)*
   * Phase 2'deki tasarım token'larını koda aktar.
   * Gezinme yapısını `NavigationSplitView` ile kur (iPhone'da otomatik olarak tek sütunlu yığına dönüşür).
 - [ ] **Canvas:** *(Kısmen: `CanvasView` mock ekranı render ediyor, normalize ↔ nokta dönüşümü var. Yakınlaştırma ve kaydırma yok.)*
   * Mock JSON'u cihaz çerçevesi içinde render eden `CanvasView`.
   * Normalize koordinat ↔ ekran noktası dönüşümü; yakınlaştırma ve kaydırma.
-- [x] **Seçim & Sürükleme:**
+- [x] **Seçim & Sürükleme:** *(Ayrıca: köşelerden boyutlandırma, görselde döndürme tutamacı (0/90/180/270°'ye yapışır), son dokunulan eleman en üste gelir.)*
   * Dokunulan eleman `selectedElement` olur, etrafına çerçeve çizilir.
   * Sürükleme sırasında geçici durum (`@GestureState`); model ve geri al kaydı yalnızca sürükleme bitince güncellenir (performans).
-- [ ] **Düzenleme Araçları (Alt Panel):**
+- [ ] **Düzenleme Araçları (Alt Panel):** *(Kısmen: 8 elemanın hepsinin Özellikler sayfası var (çift dokunuşla açılır, değişiklik anında canvas'a yansır); Sil, Çoğalt (⌘D), geri al / yinele; katalogdan dokunarak ekleme. Eksik: katalogdan sürükle-bırak.)*
   * Seçili elemanın metnini, rengini veya ikonunu değiştiren alt panel (`.sheet` + `presentationDetents`).
   * Silme, klonlama, geri al / yinele.
   * Paletten ekleme: önce **dokunarak ekleme**, ardından sürükle-bırak.
+- [ ] **Görseller:** *(Kısmen: hazır görsel kütüphanesi — Microsoft Fluent Emoji'den 28 yiyecek-içecek görseli (MIT), renkli ya da tek renk + renk seçimi; fotoğraf yükleme (`PhotosPicker`, en fazla 2048 px PNG) ve cihazda arka plan silme (Vision, simülatörde çalışmaz). Eksik: diğer kategoriler; MIT lisans metnini gösteren "Lisanslar" ekranı (yayından önce şart); silinen proje/elemanların fotoğraf dosyalarını temizleme (çoğaltılan elemanlar aynı dosyayı paylaşıyor).)*
 - [ ] **Çoklu Ekran & Önizleme Modu:**
   * Ekran ekleme/silme, elemanlara "şu ekrana git" aksiyonu bağlama.
   * Editör çizgilerinin gizlendiği canlı prototip modu.
@@ -107,7 +108,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 ## Phase 4: Kamera & Yapay Zeka Entegrasyonu (iPhone)
 > **Amaç:** Kağıttaki çizimi algılayıp Canvas'a besleyen akışı uçtan uca çalıştırmak.
 
-- [ ] **Görsel Yakalama:**
+- [ ] **Görsel Yakalama:** *(`PhotosPicker` görsel elemanında fotoğraf yüklemek için zaten kullanılıyor; burada çizimi seçmek için yeniden kullanılabilir.)*
   * `VisionKit` — `VNDocumentCameraViewController`: kağıdı otomatik algılar, perspektifi düzeltir ve kırpar.
   * `PhotosPicker`: mevcut fotoğraflardan seçim.
   * Info.plist: `NSCameraUsageDescription` metni.
@@ -133,7 +134,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 - [ ] **Çok Sütunlu Düzen:** Sol menü (projeler/ekranlar), orta alan (Canvas), sağ panel (`.inspector`).
 - [ ] **Size Class Mantığı:** Yalnızca `@Environment(\.horizontalSizeClass)` kullanılır (`UIDevice` macOS'ta derlenmediği için kullanılmaz). Regular'da sabit panel, Compact'ta alt panel.
 - [ ] **Split View / Stage Manager Testi:** Pencere daraldığında iPhone düzenine geçiş; seçili eleman ve açık panel durumu kaybolmamalı (durum ViewModel'de tutulur).
-- [ ] **Donanım Klavyesi:** Temel kısayollar (Sil, ⌘Z, ⌘⇧Z, ⌘D) — Mac ile ortak kullanılır.
+- [ ] **Donanım Klavyesi:** Temel kısayollar (Sil, ⌘Z, ⌘⇧Z, ⌘D) — Mac ile ortak kullanılır. *(Kısmen: ⌘Z, ⌘⇧Z, ⌘D ve Projelerim'de ⌘N var. Eksik: Sil tuşu.)*
 
 ---
 
