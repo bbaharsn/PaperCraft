@@ -33,8 +33,12 @@ final class EditorViewModel {
     }
 
     /// Bir elemanı seçer; `nil` verilirse seçimi kaldırır.
+    /// Seçilen eleman en üste taşınır: son dokunulan eleman diğerlerinin üstünde çizilir.
     func select(_ id: UUID?) {
         selectedElementID = id
+        guard let id, let index = screen.elements.firstIndex(where: { $0.id == id }),
+              index != screen.elements.count - 1 else { return }
+        screen.elements.append(screen.elements.remove(at: index))   // sona eklenen en üstte çizilir
     }
 
     /// Katalogdaki varsayılanlarla yeni bir eleman ekler ve onu seçer.
@@ -86,13 +90,18 @@ final class EditorViewModel {
     }
 
     /// Elemanı bir köşesinden çekerek büyütür/küçültür; karşı köşe yerinde kalır.
-    /// `delta` parmağın son hareketidir (point). Eleman en küçük boyutun altına inmez,
-    /// ekrandan taşmaz; daire buton hep kare kalır.
-    func resizeElement(_ id: UUID, from corner: ResizeCorner, by delta: CGSize) {
+    /// `screenDelta` parmağın son hareketidir (point). Eleman en küçük boyutun altına inmez,
+    /// ekrandan taşmaz; daire buton hep kare kalır. Döndürülmüş elemanda da karşı köşe ekranda yerinde kalır.
+    func resizeElement(_ id: UUID, from corner: ResizeCorner, by screenDelta: CGSize) {
         guard let index = screen.elements.firstIndex(where: { $0.id == id }) else { return }
         let element = screen.elements[index]
         let rect = pointRect(of: element)
         let minSize = minimumSize(of: element)
+
+        // Parmak ekranın eksenlerinde hareket eder; döndürülmüş elemanda bunu elemanın kendi eksenlerine çeviririz.
+        let angle = (element.properties.rotation ?? 0) * .pi / 180
+        let delta = CGSize(width: screenDelta.width * cos(angle) + screenDelta.height * sin(angle),
+                           height: -screenDelta.width * sin(angle) + screenDelta.height * cos(angle))
 
         var left = rect.minX, right = rect.maxX, top = rect.minY, bottom = rect.maxY
         if corner.isLeading {
@@ -109,6 +118,9 @@ final class EditorViewModel {
         var newRect = CGRect(x: left, y: top, width: right - left, height: bottom - top)
         if isCircleButton(element) {
             newRect = squared(newRect, anchoredOppositeOf: corner)
+        }
+        if angle != 0 {
+            newRect = keepingOppositeCorner(of: corner, from: rect, to: newRect, angle: angle)
         }
         setPointRect(newRect, at: index)
     }
@@ -158,6 +170,43 @@ final class EditorViewModel {
         var rect = pointRect(of: screen.elements[index])
         rect.size.height = mode.barHeight
         setPointRect(rect, at: index)
+    }
+
+    // MARK: - Görsel
+
+    /// Seçili görsele kütüphaneden bir görsel koyar; yüklenmiş fotoğraf varsa kaldırılır.
+    func setSelectedLibraryImage(_ name: String) {
+        guard selectedElement?.type == .image else { return }
+        updateSelectedProperties { properties in
+            properties.imageName = name
+            properties.uploadedImageName = nil
+            properties.removesBackground = nil
+        }
+    }
+
+    /// Seçili görsele yüklenen fotoğrafı koyar; arka plan silme kapalı başlar.
+    func setSelectedUploadedImage(_ fileName: String) {
+        guard selectedElement?.type == .image else { return }
+        updateSelectedProperties { properties in
+            properties.uploadedImageName = fileName
+            properties.removesBackground = false
+            properties.imageName = nil
+        }
+    }
+
+    /// Elemanın açısını (derece, saat yönünde) ayarlar; 0..<360 aralığına çeker (-90 → 270).
+    func setRotation(_ id: UUID, degrees: Double) {
+        guard let index = screen.elements.firstIndex(where: { $0.id == id }) else { return }
+        var angle = degrees.truncatingRemainder(dividingBy: 360)
+        if angle < 0 { angle += 360 }
+        screen.elements[index].properties.rotation = angle
+    }
+
+    /// Tutamakla döndürürken 0°, 90°, 180°, 270°'ye 5°'den yakınsa tam o açıya yapıştırır;
+    /// görseli düz tutmak kolaylaşır.
+    static func snappedRotation(_ degrees: Double) -> Double {
+        let nearest = (degrees / 90).rounded() * 90
+        return abs(degrees - nearest) < 5 ? nearest : degrees
     }
 
     // MARK: - Alt menü
@@ -275,6 +324,21 @@ final class EditorViewModel {
 
     private func isCircleButton(_ element: CanvasElement) -> Bool {
         element.type == .button && element.properties.shape == .circle
+    }
+
+    /// Eleman ortasından döndürüldüğü için boyu değişince köşeleri ekranda kayar.
+    /// Çerçeveyi, çekilen köşenin karşısındaki köşe ekranda eski yerinde kalacak kadar kaydırır.
+    private func keepingOppositeCorner(of corner: ResizeCorner, from old: CGRect, to new: CGRect,
+                                       angle: Double) -> CGRect {
+        func screenPoint(in rect: CGRect) -> CGPoint {
+            let dx = (corner.isLeading ? rect.maxX : rect.minX) - rect.midX
+            let dy = (corner.isTop ? rect.maxY : rect.minY) - rect.midY
+            return CGPoint(x: rect.midX + dx * cos(angle) - dy * sin(angle),
+                           y: rect.midY + dx * sin(angle) + dy * cos(angle))
+        }
+        let before = screenPoint(in: old)
+        let after = screenPoint(in: new)
+        return new.offsetBy(dx: before.x - after.x, dy: before.y - after.y)
     }
 
     /// Dikdörtgeni, çekilen köşenin karşısındaki köşe sabit kalacak şekilde kareye çevirir.

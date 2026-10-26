@@ -68,7 +68,7 @@ struct CanvasView: View {
     /// Tüm elemanlar, gerçek iPhone point'leriyle yerleştirilmiş halde.
     private func elementsLayer(scale: CGFloat) -> some View {
         ZStack {
-            ForEach(viewModel.screen.elements) { element in
+            ForEach(Array(viewModel.screen.elements.enumerated()), id: \.element.id) { index, element in
                 let frame = element.frame
                 let isSelected = element.id == viewModel.selectedElementID
 
@@ -87,14 +87,23 @@ struct CanvasView: View {
                     // Taşıma hareketinden sonra eklenir; böylece tutamaçlar kendi hareketini alır.
                     .overlay {
                         if isSelected {
-                            SelectionOverlay(element: element, scale: scale) { corner, delta in
-                                viewModel.resizeElement(element.id, from: corner, by: delta)
-                            }
+                            SelectionOverlay(element: element, scale: scale,
+                                             onResize: { corner, delta in
+                                                 viewModel.resizeElement(element.id, from: corner, by: delta)
+                                             },
+                                             onRotate: element.type == .image ? { degrees in
+                                                 viewModel.setRotation(element.id,
+                                                                       degrees: EditorViewModel.snappedRotation(degrees))
+                                             } : nil)
                         }
                     }
+                    // Seçim çizgisi de elemanla birlikte döner
+                    .rotationEffect(.degrees(element.properties.rotation ?? 0))
                     .offset(element.id == draggingID ? dragOffset : .zero)
                     .position(x: (frame.x + frame.width / 2) * referenceSize.width,
                               y: (frame.y + frame.height / 2) * referenceSize.height)
+                    // ZStack sıra değişince çizim sırasını her zaman güncellemiyor; dizideki sırayı açıkça veriyoruz.
+                    .zIndex(Double(index))
             }
         }
     }

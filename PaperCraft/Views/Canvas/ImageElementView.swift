@@ -5,10 +5,21 @@
 
 import SwiftUI
 
-/// Canvas'taki bir görseli çizer: kütüphaneden seçilen görsel (renkli ya da tek renk)
-/// veya henüz görsel seçilmemişse yer tutucu ikon.
+/// Canvas'taki bir görseli çizer: yüklenen fotoğraf (arka planlı ya da arka plansız),
+/// kütüphaneden seçilen görsel (renkli ya da tek renk) veya henüz görsel yoksa yer tutucu ikon.
 struct ImageElementView: View {
     let properties: ElementProperties
+    var store = UploadedImageStore.shared
+
+    /// Yüklenen fotoğraf; yoksa ya da dosyası bulunamazsa `nil`.
+    private var uploadedImage: CGImage? {
+        guard let name = properties.uploadedImageName else { return nil }
+        if properties.removesBackground == true,
+           let cutout = store.image(named: UploadedImageStore.backgroundRemovedName(for: name)) {
+            return cutout
+        }
+        return store.image(named: name)
+    }
 
     private var colorMode: ImageColorMode { properties.imageColorMode ?? .original }
 
@@ -25,7 +36,11 @@ struct ImageElementView: View {
     }
 
     var body: some View {
-        if let assetName {
+        if let uploadedImage {
+            Image(decorative: uploadedImage, scale: 1)
+                .resizable()
+                .scaledToFit()
+        } else if let assetName {
             Image(assetName)
                 .resizable()
                 .renderingMode(colorMode == .mono ? .template : .original)

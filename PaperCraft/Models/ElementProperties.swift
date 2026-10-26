@@ -102,6 +102,12 @@ nonisolated struct ElementProperties: Codable, Equatable {
 
     /// Görsel kütüphanesindeki adı ("hot_beverage"); boşsa yer tutucu ikon görünür.
     var imageName: String?
-    /// Görsel renkli mi, tek renk mi çizilsin.
+    /// Görsel renkli mi, tek renk mi çizilsin. Yüklenen fotoğraf hep renkli çizilir.
     var imageColorMode: ImageColorMode?
+    /// Kullanıcının yüklediği fotoğrafın dosya adı (`UploadedImageStore`'da); doluysa `imageName`'in önüne geçer.
+    var uploadedImageName: String?
+    /// Yüklenen fotoğrafın arka planı silinmiş hali mi gösterilsin.
+    var removesBackground: Bool?
+    /// Döndürme açısı, derece (saat yönünde, 0..<360). Şimdilik sadece görselde döndürme tutamacı var.
+    var rotation: Double?
 }
