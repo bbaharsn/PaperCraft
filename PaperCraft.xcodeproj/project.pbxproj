@@ -138,10 +138,10 @@
 				};
 			};
 			buildConfigurationList = 4192C4B9307E2F9700762B0F /* Build configuration list for PBXProject "PaperCraft" */;
-			developmentRegion = en;
+			developmentRegion = tr;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				en,
+				tr,
 				Base,
 			);
 			mainGroup = 4192C4B5307E2F9700762B0F;

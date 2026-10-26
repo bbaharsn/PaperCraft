@@ -1,14 +1,20 @@
 //
-//  ContentView.swift
+//  EditorView.swift
 //  PaperCraft
 //
 //  Created by Bahar Şen on 13.10.2026.
 //
 
+import SwiftData
 import SwiftUI
 
-struct ContentView: View {
-    @State private var viewModel = ContentView.makeEditor()
+/// Bir projenin editörü: üst bar, canvas, katalog ve Özellikler sayfası.
+/// Her değişiklik anında projeye yazılır; "Kaydet" yok.
+struct EditorView: View {
+    let project: Project
+    @State private var viewModel: EditorViewModel
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
     /// Alt katalog açık mı? Sadece bu ekranı ilgilendiren bir görünüm durumu.
     @State private var isCatalogOpen = false
 
@@ -18,6 +24,11 @@ struct ContentView: View {
 
     /// Özellikler sayfasının yarım açıkken yüksekliği (point).
     private static let propertiesSheetHeight: CGFloat = 340
+
+    init(project: Project) {
+        self.project = project
+        _viewModel = State(initialValue: Self.makeEditor(screen: project.firstScreen))
+    }
 
     /// Sayfa, istendiğinde ve seçili elemanın bir Özellikler sayfası olduğunda açıktır.
     /// Aşağı kaydırılıp ya da "Bitti" ile kapatılırsa seçim kalır, sadece sayfa kapanır.
@@ -34,6 +45,8 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             EditorTopBar(
+                projectName: project.name,
+                onBack: { dismiss() },
                 canUndo: viewModel.canUndo,
                 canRedo: viewModel.canRedo,
                 onUndo: { viewModel.undo() },
@@ -77,9 +90,21 @@ struct ContentView: View {
             }
         }
         .background(Theme.background)
+        // Üst barı kendimiz çiziyoruz; sistemin gezinme çubuğu görünmesin.
+        #if os(iOS)
+        .toolbar(.hidden, for: .navigationBar)
+        #endif
         // Seçim tamamen kalkınca istek de sıfırlanır; yoksa sonraki tek dokunuş sayfayı açardı.
         .onChange(of: viewModel.selectedElementID) { _, newID in
             if newID == nil { wantsProperties = false }
+        }
+        // Otomatik kaydetme: ekran her değiştiğinde projeye yazılır.
+        .onChange(of: viewModel.screen) { _, newScreen in
+            project.saveFirstScreen(newScreen)
+        }
+        // SwiftData kendisi de ara ara kaydeder; editörden çıkarken beklemeden diske yazalım.
+        .onDisappear {
+            try? context.save()
         }
         .sheet(isPresented: isShowingProperties) {
             ElementPropertiesSheet(viewModel: viewModel)
@@ -90,21 +115,29 @@ struct ContentView: View {
         }
     }
 
-    /// Katalogları yükleyip örnek ekranla bir editör hazırlar.
-    /// Katalog okunamazsa boş katalog ve boş ekranla açılır (çökmez).
-    private static func makeEditor() -> EditorViewModel {
+    /// Katalogları yükleyip verilen ekranla bir editör hazırlar.
+    /// Katalog okunamazsa boş katalogla açılır (çökmez).
+    private static func makeEditor(screen: PrototypeScreen) -> EditorViewModel {
         guard let catalog = try? ComponentCatalog.load() else {
-            return EditorViewModel(catalog: .empty, screen: PrototypeScreen(name: "Boş Ekran"))
+            return EditorViewModel(catalog: .empty, screen: screen)
         }
         let symbols = (try? SymbolCatalog.load()) ?? .empty
         let images = (try? ImageLibrary.load()) ?? .empty
         return EditorViewModel(catalog: catalog,
                                symbolCatalog: symbols,
                                imageLibrary: images,
-                               screen: MockScreens.login(using: catalog))
+                               screen: screen)
     }
 }
 
 #Preview {
-    ContentView()
+    let container = try! ModelContainer(for: Project.self, ScreenRecord.self,
+                                        configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let project = Project.create(name: "Önizleme",
+                                 screen: MockScreens.login(using: try! ComponentCatalog.load()),
+                                 in: container.mainContext)
+    return NavigationStack {
+        EditorView(project: project)
+    }
+    .modelContainer(container)
 }

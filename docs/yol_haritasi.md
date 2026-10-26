@@ -46,7 +46,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 - [x] **Eleman Kataloğu (JSON):** `Text`, `Button`, `TextField`, `Image`, `Switch`, `Slider`, `NavigationBar`, `TabBar` için varsayılan boyut, metin ve stil değerleri → `PaperCraft/Resources/Catalog/ComponentCatalog.json`.
 - [x] **SF Symbols Haritası (JSON):** 58 sık kullanılan ikon, Türkçe/İngilizce anahtar kelimelerle → `PaperCraft/Resources/Catalog/SymbolCatalog.json`.
 - [ ] **Katalog Swift Modelleri:** JSON'ları okuyan `Codable` modeller + çalışma anında sembol adı doğrulama; geçersizse `fallbackSymbol`'e düş. *(Kısmen: `ComponentCatalog` hazır ve test edildi. `SymbolCatalog` için Swift modeli henüz yok.)*
-- [ ] **Kalıcılık & iCloud Senkronizasyonu:**
+- [ ] **Kalıcılık & iCloud Senkronizasyonu:** *(Kısmen: SwiftData hazır — `Project` ve `ScreenRecord` iCloud kurallarına uygun, ekran JSON olarak saklanıyor, `schemaVersion` var. Eksik: CloudKit'i açmak; yüklenen fotoğraflar şu an sadece cihazda.)*
   * SwiftData + CloudKit. `Project` ve `Screen` SwiftData kayıtları; eleman listesi kayıt içinde JSON verisi olarak saklanır (CloudKit kısıtlarıyla daha az sorun çıkarır).
   * CloudKit kuralları: tüm alanlar opsiyonel veya varsayılan değerli, `unique` kısıtı yok, ilişkiler opsiyonel.
 - [x] **Geri Al / Yinele Altyapısı:** Model değişiklikleri tek bir noktadan geçer. *(`EditorViewModel.screen` her değiştiğinde eski hal yığına girer; hızlı art arda değişiklikler tek adım, en fazla 50 adım. `UndoManager` yerine kendi yığınımız; üst barda butonlar, ⌘Z / ⌘⇧Z.)*
@@ -100,7 +100,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 - [ ] **Çoklu Ekran & Önizleme Modu:**
   * Ekran ekleme/silme, elemanlara "şu ekrana git" aksiyonu bağlama.
   * Editör çizgilerinin gizlendiği canlı prototip modu.
-- [ ] **Kalıcılık:** Projelerim ekranı SwiftData ile çalışır.
+- [x] **Kalıcılık:** Projelerim ekranı SwiftData ile çalışır. *(Oluştur, aç, yeniden adlandır, sil; editörde her değişiklik otomatik kaydedilir; ilk açılışta örnek proje.)*
 
 ---
 

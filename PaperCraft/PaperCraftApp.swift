@@ -5,6 +5,7 @@
 //  Created by Bahar Şen on 13.10.2026.
 //
 
+import SwiftData
 import SwiftUI
 
 @main
@@ -15,7 +16,9 @@ struct PaperCraftApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ProjectsView()
         }
+        // Projeler cihazda SwiftData ile saklanır; değişiklikler kendiliğinden kaydedilir.
+        .modelContainer(for: [Project.self, ScreenRecord.self])
     }
 }

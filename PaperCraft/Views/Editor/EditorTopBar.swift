@@ -5,8 +5,11 @@
 
 import SwiftUI
 
-/// Editörün üst barı: logo, geri al / yinele, katalog butonu ve "Dene" butonu.
+/// Editörün üst barı: Projelerim'e dönüş, geri al / yinele, katalog butonu ve "Dene" butonu.
 struct EditorTopBar: View {
+    let projectName: String
+    /// "‹ Proje adı"na basılınca Projelerim'e dönülür.
+    let onBack: () -> Void
     var canUndo = false
     var canRedo = false
     var onUndo: () -> Void = {}
@@ -18,8 +21,8 @@ struct EditorTopBar: View {
 
     var body: some View {
         HStack {
-            logo
-            Spacer()
+            backButton
+            Spacer(minLength: 8)
             undoRedoButtons
             catalogButton
             previewButton
@@ -28,11 +31,22 @@ struct EditorTopBar: View {
         .padding(.vertical, 8)
     }
 
-    /// İki Text'i `+` ile birleştiriyoruz: nokta farklı renkte.
-    private var logo: some View {
-        (Text("papercraft").foregroundStyle(Theme.ink)
-         + Text(".").foregroundStyle(Theme.accent))
-            .font(Theme.logoFont(size: 24))
+    /// Proje adı uzunsa sonu "…" ile kısalır; butonlar hep sığar.
+    private var backButton: some View {
+        Button(action: onBack) {
+            HStack(spacing: 4) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 17, weight: .semibold))
+                Text(projectName)
+                    .font(.system(size: 17, weight: .semibold))
+                    .lineLimit(1)
+            }
+            .foregroundStyle(Theme.ink)
+            .frame(height: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Projelerim'e dön")
     }
 
     /// Geri al ve yinele tek bir kutuda yan yana; yapılacak bir şey yoksa soluk görünür.
@@ -92,6 +106,6 @@ struct EditorTopBar: View {
 }
 
 #Preview {
-    EditorTopBar(canUndo: true, onToggleCatalog: {}, onPreview: {})
+    EditorTopBar(projectName: "Kahve Dükkanı", onBack: {}, canUndo: true, onToggleCatalog: {}, onPreview: {})
         .background(Theme.background)
 }
