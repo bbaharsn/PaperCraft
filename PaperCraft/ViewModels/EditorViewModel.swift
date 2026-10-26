@@ -16,8 +16,28 @@ final class EditorViewModel {
     let symbolCatalog: SymbolCatalog
     /// Görsel seçerken gösterilecek hazır görseller (sadece okunur).
     let imageLibrary: ImageLibrary
-    var screen: PrototypeScreen
+    /// Ekran her değiştiğinde eski hali geri al yığınına girer; bu sayede tüm değişiklikler
+    /// (bugünküler ve ileride eklenecekler) kendiliğinden geri alınabilir.
+    var screen: PrototypeScreen {
+        didSet { recordUndo(from: oldValue) }
+    }
     var selectedElementID: UUID?
+
+    // MARK: Geri al / Yinele durumu
+
+    /// Geri alınabilecek eski haller; sonuncusu en yenisi.
+    private(set) var undoStack: [PrototypeScreen] = []
+    /// Geri alınıp yinelenebilecek haller; sonuncusu ilk yinelenecek olan.
+    private(set) var redoStack: [PrototypeScreen] = []
+    /// En fazla bu kadar adım geri alınabilir; daha eskisi unutulur.
+    static let undoLimit = 50
+    /// Bu süreden kısa aralıklarla gelen değişiklikler (köşe çekmek, yazı yazmak) tek adım sayılır.
+    static let mergeInterval: TimeInterval = 0.6
+    @ObservationIgnored private var lastChangeDate: Date?
+    /// Geri al / yinele ve öne getirme sırasında kayıt tutulmaz.
+    @ObservationIgnored private var isRecordingPaused = false
+    /// Şu anki zaman; testlerde saati elle ilerletmek için değiştirilir.
+    @ObservationIgnored var now: () -> Date = Date.init
 
     init(catalog: ComponentCatalog, symbolCatalog: SymbolCatalog = .empty,
          imageLibrary: ImageLibrary = .empty, screen: PrototypeScreen) {
@@ -34,11 +54,57 @@ final class EditorViewModel {
 
     /// Bir elemanı seçer; `nil` verilirse seçimi kaldırır.
     /// Seçilen eleman en üste taşınır: son dokunulan eleman diğerlerinin üstünde çizilir.
+    /// Öne getirme geri al adımı sayılmaz; yoksa her dokunuş bir adım olurdu.
     func select(_ id: UUID?) {
         selectedElementID = id
         guard let id, let index = screen.elements.firstIndex(where: { $0.id == id }),
               index != screen.elements.count - 1 else { return }
-        screen.elements.append(screen.elements.remove(at: index))   // sona eklenen en üstte çizilir
+        withoutRecording {
+            screen.elements.append(screen.elements.remove(at: index))   // sona eklenen en üstte çizilir
+        }
+    }
+
+    // MARK: - Geri al / Yinele
+
+    var canUndo: Bool { !undoStack.isEmpty }
+    var canRedo: Bool { !redoStack.isEmpty }
+
+    /// Ekranı bir önceki haline döndürür.
+    func undo() {
+        guard let previous = undoStack.popLast() else { return }
+        redoStack.append(screen)
+        restore(previous)
+    }
+
+    /// Geri alınan değişikliği yeniden uygular.
+    func redo() {
+        guard let next = redoStack.popLast() else { return }
+        undoStack.append(screen)
+        restore(next)
+    }
+
+    /// `screen` değişince çağrılır. Hızlı art arda gelen değişikliklerde sadece ilkinden önceki hal saklanır.
+    private func recordUndo(from oldScreen: PrototypeScreen) {
+        guard !isRecordingPaused, oldScreen != screen else { return }
+        let date = now()
+        defer { lastChangeDate = date }
+        if let lastChangeDate, date.timeIntervalSince(lastChangeDate) < Self.mergeInterval { return }
+
+        undoStack.append(oldScreen)
+        if undoStack.count > Self.undoLimit { undoStack.removeFirst() }
+        redoStack.removeAll()   // yeni bir değişiklik yapılınca eski "yinele"ler geçersiz olur
+    }
+
+    private func restore(_ savedScreen: PrototypeScreen) {
+        withoutRecording { screen = savedScreen }
+        lastChangeDate = nil   // sonraki değişiklik öncekiyle birleşmesin
+        if selectedElement == nil { selectedElementID = nil }   // seçili eleman o halde yoksa
+    }
+
+    private func withoutRecording(_ change: () -> Void) {
+        isRecordingPaused = true
+        change()
+        isRecordingPaused = false
     }
 
     /// Katalogdaki varsayılanlarla yeni bir eleman ekler ve onu seçer.
@@ -54,6 +120,25 @@ final class EditorViewModel {
         guard let id = selectedElementID else { return }
         screen.elements.removeAll { $0.id == id }
         selectedElementID = nil
+    }
+
+    /// Seçili eleman çoğaltılabilir mi? Ekranın üstüne/altına yapışan barlar (üst bar, alt menü)
+    /// bir ekranda bir tane olur; onlar çoğaltılmaz.
+    var canDuplicateSelected: Bool {
+        guard let element = selectedElement else { return false }
+        return (catalog.definition(for: element.type)?.placement ?? .free) == .free
+    }
+
+    /// Seçili elemanın kopyasını 16 pt sağa-aşağı kaydırarak ekler ve kopyayı seçer.
+    /// Kopya ekrandan taşmaz; çoğaltılamayan elemanlarda hiçbir şey yapmaz.
+    func duplicateSelectedElement() {
+        guard canDuplicateSelected, var copy = selectedElement else { return }
+        let offset: Double = 16
+        copy.id = UUID()
+        copy.frame.x = min(copy.frame.x + offset / canvasSize.width, 1 - copy.frame.width)
+        copy.frame.y = min(copy.frame.y + offset / canvasSize.height, 1 - copy.frame.height)
+        screen.elements.append(copy)   // sona eklenen en üstte çizilir
+        selectedElementID = copy.id
     }
 
     /// Seçili elemanın özelliklerini değiştirir. Seçili eleman yoksa hiçbir şey yapmaz.

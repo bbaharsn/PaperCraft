@@ -34,6 +34,10 @@ struct ContentView: View {
     var body: some View {
         VStack(spacing: 0) {
             EditorTopBar(
+                canUndo: viewModel.canUndo,
+                canRedo: viewModel.canRedo,
+                onUndo: { viewModel.undo() },
+                onRedo: { viewModel.redo() },
                 onToggleCatalog: {
                     withAnimation(.snappy) {
                         isCatalogOpen.toggle()
@@ -51,9 +55,10 @@ struct ContentView: View {
                 // overlay: canvas'ın boyutunu değiştirmeden üstüne yüzer
                 .overlay(alignment: .bottom) {
                     if viewModel.selectedElementID != nil {
-                        SelectionToolbar(onDelete: {
-                            viewModel.deleteSelectedElement()
-                        })
+                        SelectionToolbar(
+                            onDuplicate: viewModel.canDuplicateSelected ? { viewModel.duplicateSelectedElement() } : nil,
+                            onDelete: { viewModel.deleteSelectedElement() }
+                        )
                         .padding(.bottom, 32)
                         .transition(.scale.combined(with: .opacity))
                     }

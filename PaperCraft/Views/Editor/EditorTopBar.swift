@@ -5,8 +5,12 @@
 
 import SwiftUI
 
-/// Editörün üst barı: logo, katalog butonu ve "Dene" butonu.
+/// Editörün üst barı: logo, geri al / yinele, katalog butonu ve "Dene" butonu.
 struct EditorTopBar: View {
+    var canUndo = false
+    var canRedo = false
+    var onUndo: () -> Void = {}
+    var onRedo: () -> Void = {}
     /// [≋] butonuna basılınca ne olacağını dışarıdan alırız.
     let onToggleCatalog: () -> Void
     /// "Dene" butonuna basılınca ne olacağını dışarıdan alırız.
@@ -16,6 +20,7 @@ struct EditorTopBar: View {
         HStack {
             logo
             Spacer()
+            undoRedoButtons
             catalogButton
             previewButton
         }
@@ -28,6 +33,39 @@ struct EditorTopBar: View {
         (Text("papercraft").foregroundStyle(Theme.ink)
          + Text(".").foregroundStyle(Theme.accent))
             .font(Theme.logoFont(size: 24))
+    }
+
+    /// Geri al ve yinele tek bir kutuda yan yana; yapılacak bir şey yoksa soluk görünür.
+    /// Klavyede (iPad, Mac) ⌘Z ve ⌘⇧Z ile de çalışır.
+    private var undoRedoButtons: some View {
+        HStack(spacing: 0) {
+            Button(action: onUndo) {
+                Image(systemName: "arrow.uturn.backward")
+                    .frame(width: 36, height: 44)
+            }
+            .keyboardShortcut("z", modifiers: .command)
+            .disabled(!canUndo)
+            .opacity(canUndo ? 1 : 0.3)   // düz buton stilinde soluklaşma kendiliğinden olmuyor
+            .accessibilityLabel("Geri al")
+
+            Rectangle()
+                .fill(Theme.ink.opacity(0.3))
+                .frame(width: 1, height: 22)
+
+            Button(action: onRedo) {
+                Image(systemName: "arrow.uturn.forward")
+                    .frame(width: 36, height: 44)
+            }
+            .keyboardShortcut("z", modifiers: [.command, .shift])
+            .disabled(!canRedo)
+            .opacity(canRedo ? 1 : 0.3)
+            .accessibilityLabel("Yinele")
+        }
+        .buttonStyle(.plain)
+        .font(.system(size: 16, weight: .semibold))
+        .foregroundStyle(Theme.ink)
+        .background(Theme.panel, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.ink, lineWidth: 1))
     }
 
     private var catalogButton: some View {
@@ -54,6 +92,6 @@ struct EditorTopBar: View {
 }
 
 #Preview {
-    EditorTopBar(onToggleCatalog: {}, onPreview: {})
+    EditorTopBar(canUndo: true, onToggleCatalog: {}, onPreview: {})
         .background(Theme.background)
 }

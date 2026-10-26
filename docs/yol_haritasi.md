@@ -49,7 +49,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 - [ ] **Kalıcılık & iCloud Senkronizasyonu:**
   * SwiftData + CloudKit. `Project` ve `Screen` SwiftData kayıtları; eleman listesi kayıt içinde JSON verisi olarak saklanır (CloudKit kısıtlarıyla daha az sorun çıkarır).
   * CloudKit kuralları: tüm alanlar opsiyonel veya varsayılan değerli, `unique` kısıtı yok, ilişkiler opsiyonel.
-- [ ] **Geri Al / Yinele Altyapısı:** Model değişiklikleri tek bir noktadan geçer (`UndoManager` ile uyumlu).
+- [x] **Geri Al / Yinele Altyapısı:** Model değişiklikleri tek bir noktadan geçer. *(`EditorViewModel.screen` her değiştiğinde eski hal yığına girer; hızlı art arda değişiklikler tek adım, en fazla 50 adım. `UndoManager` yerine kendi yığınımız; üst barda butonlar, ⌘Z / ⌘⇧Z.)*
 - [x] **MVVM:** Model ve ViewModel'ler platformdan bağımsız; tüm cihazlar aynı katmanı kullanır. *(`EditorViewModel`)*
 - [ ] **AI Spike (kod dışı deney):**
   * 10–15 gerçek el çizimi topla (bu set ileride doğruluk testi için sabit kalır).
