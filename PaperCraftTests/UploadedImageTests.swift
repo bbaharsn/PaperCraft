@@ -14,9 +14,10 @@ import UniformTypeIdentifiers
 struct UploadedImageTests {
 
     /// Her test kendi geçici klasörünü kullanır; gerçek yüklemelere dokunulmaz.
+    /// Adda boşluk var: gerçek klasör de "Application Support" (yol `%20` ile kodlanırsa dosyalar bulunmaz).
     private func makeStore() -> UploadedImageStore {
         UploadedImageStore(directory: FileManager.default.temporaryDirectory
-            .appending(path: "UploadedImageTests-\(UUID().uuidString)"))
+            .appending(path: "Uploaded Image Tests \(UUID().uuidString)"))
     }
 
     /// Verilen boyutta düz renkli bir PNG üretir (fotoğraf yerine).
@@ -70,6 +71,49 @@ struct UploadedImageTests {
 
     @Test func backgroundRemovedNameSitsNextToOriginal() {
         #expect(UploadedImageStore.backgroundRemovedName(for: "ABC.png") == "ABC_nobg.png")
+    }
+
+    @Test func removeUnusedKeepsOnlyUsedFiles() {
+        let store = makeStore()
+        func touch(_ name: String) {
+            FileManager.default.createFile(atPath: store.directory.appending(path: name).path(percentEncoded: false),
+                                           contents: Data())
+        }
+        func exists(_ name: String) -> Bool {
+            FileManager.default.fileExists(atPath: store.directory.appending(path: name).path(percentEncoded: false))
+        }
+        touch("A.png"); touch("A_nobg.png"); touch("B.png"); touch("B_nobg.png")
+
+        store.removeUnused(keeping: ["A.png"])
+
+        #expect(exists("A.png"))
+        #expect(exists("A_nobg.png"))   // kullanılan fotoğrafın arka plansız hali de kalır
+        #expect(!exists("B.png"))
+        #expect(!exists("B_nobg.png"))
+    }
+
+    @Test func backgroundRemovedFileIsFound() {
+        let store = makeStore()
+        #expect(!store.hasBackgroundRemoved(for: "A.png"))
+
+        FileManager.default.createFile(atPath: store.directory.appending(path: "A_nobg.png").path(percentEncoded: false),
+                                       contents: Data())
+
+        #expect(store.hasBackgroundRemoved(for: "A.png"))
+    }
+
+    @Test func screenListsUploadedImageNamesOnce() throws {
+        let editor = EditorViewModel(catalog: try ComponentCatalog.load(), screen: PrototypeScreen(name: "Test"))
+        editor.addElement(of: .image)
+        editor.setSelectedUploadedImage("A.png")
+        editor.duplicateSelectedElement()          // kopya aynı dosyayı paylaşır
+        editor.addElement(of: .image)
+        editor.setSelectedUploadedImage("B.png")
+        editor.addElement(of: .image)
+        editor.setSelectedLibraryImage("croissant") // hazır görsel: dosya değil
+        editor.addElement(of: .button)
+
+        #expect(editor.screen.uploadedImageNames == ["A.png", "B.png"])
     }
 
     @Test func uploadingReplacesLibraryImage() throws {

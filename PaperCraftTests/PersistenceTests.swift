@@ -63,6 +63,34 @@ struct PersistenceTests {
         #expect(project.firstScreen.elements.isEmpty)
     }
 
+    /// Verilen fotoğrafları kullanan görsellerden oluşan bir ekran.
+    private func screen(withUploads names: [String]) throws -> PrototypeScreen {
+        let editor = EditorViewModel(catalog: try ComponentCatalog.load(), screen: PrototypeScreen(name: "Ekran 1"))
+        for name in names {
+            editor.addElement(of: .image)
+            editor.setSelectedUploadedImage(name)
+        }
+        return editor.screen
+    }
+
+    @Test func uploadedImageNamesCoverAllProjects() throws {
+        let context = try makeContext()
+        let first = Project.create(name: "Bir", screen: try screen(withUploads: ["A.png"]), in: context)
+        let second = Project.create(name: "İki", screen: try screen(withUploads: ["A.png", "B.png"]), in: context)
+
+        #expect(Project.uploadedImageNames(in: [first, second]) == ["A.png", "B.png"])
+    }
+
+    @Test func corruptRecordGivesNoNamesSoNothingIsDeleted() throws {
+        let context = try makeContext()
+        let healthy = Project.create(name: "Sağlam", screen: try screen(withUploads: ["A.png"]), in: context)
+        let broken = Project.create(name: "Bozuk", screen: try screen(withUploads: ["B.png"]), in: context)
+        broken.sortedScreens.first?.data = Data("bozuk veri".utf8)
+
+        // Bozuk kayıttaki adları bilemeyiz; liste yerine nil gelir ve temizlik hiç yapılmaz
+        #expect(Project.uploadedImageNames(in: [healthy, broken]) == nil)
+    }
+
     @Test func deletingProjectDeletesItsScreens() throws {
         let context = try makeContext()
         let project = Project.create(name: "Silinecek", screen: try loginScreen(), in: context)

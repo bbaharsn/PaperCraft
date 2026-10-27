@@ -58,7 +58,10 @@ struct ProjectsView: View {
         } message: {
             Text("\"\(deletingProject?.name ?? "")\" ve tüm ekranları silinir. Bu geri alınamaz.")
         }
-        .task { createSampleProjectIfNeeded() }
+        .task {
+            createSampleProjectIfNeeded()
+            removeUnusedImages()
+        }
     }
 
     // MARK: - Parçalar
@@ -153,6 +156,15 @@ struct ProjectsView: View {
         hasCreatedSampleProject = true
         guard projects.isEmpty, let catalog = try? ComponentCatalog.load() else { return }
         Project.create(name: "Örnek: Giriş Ekranı", screen: MockScreens.login(using: catalog), in: context)
+    }
+
+    /// Silinen proje ve elemanlardan kalan fotoğraf dosyalarını siler. Açılışta bir kez çalışır;
+    /// o an hiçbir editör açık olmadığı için geri al ile dönecek bir eleman da yoktur.
+    /// Projeler `@Query` yerine doğrudan okunur: liste henüz dolmadıysa boş görünüp her şeyi sildirmesin.
+    private func removeUnusedImages() {
+        guard let allProjects = try? context.fetch(FetchDescriptor<Project>()),
+              let usedNames = Project.uploadedImageNames(in: allProjects) else { return }
+        UploadedImageStore.shared.removeUnused(keeping: usedNames)
     }
 
     // MARK: - Uyarı bağlantıları

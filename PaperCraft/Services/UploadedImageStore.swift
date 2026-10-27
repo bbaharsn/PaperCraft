@@ -46,7 +46,8 @@ final class UploadedImageStore {
 
     /// Arka planı silinmiş hali daha önce hazırlandı mı.
     func hasBackgroundRemoved(for name: String) -> Bool {
-        FileManager.default.fileExists(atPath: directory.appending(path: Self.backgroundRemovedName(for: name)).path())
+        FileManager.default.fileExists(atPath: directory.appending(path: Self.backgroundRemovedName(for: name))
+            .path(percentEncoded: false))
     }
 
     /// Fotoğrafın arka planı silinmiş halini hazırlayıp yanına kaydeder.
@@ -63,6 +64,18 @@ final class UploadedImageStore {
               let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { return nil }
         cache[name] = image
         return image
+    }
+
+    /// Hiçbir elemanın kullanmadığı fotoğrafları (ve arka plansız hallerini) siler.
+    /// Geri al ile dönen eleman dosyasını bulamasın diye silme anında değil, uygulama açılınca çağrılır.
+    func removeUnused(keeping usedNames: Set<String>) {
+        let kept = usedNames.union(usedNames.map(Self.backgroundRemovedName(for:)))
+        // `path()` boşluğu "%20" yapar; "Application Support" klasörü öyle bulunamaz
+        let files = (try? FileManager.default.contentsOfDirectory(atPath: directory.path(percentEncoded: false))) ?? []
+        for name in files where !kept.contains(name) {
+            try? FileManager.default.removeItem(at: directory.appending(path: name))
+            cache[name] = nil
+        }
     }
 
     // MARK: - Ağır işler (ana thread'i dondurmasın diye arka planda)

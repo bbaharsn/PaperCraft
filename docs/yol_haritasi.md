@@ -55,7 +55,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
   * 10–15 gerçek el çizimi topla (bu set ileride doğruluk testi için sabit kalır).
   * Seçilen AI sağlayıcısına gönder, JSON çıktılarını incele: koordinat isabeti, tip doğruluğu, metin okuma.
   * Sonuçlara göre veri şemasını kesinleştir.
-- [ ] **Testler:** JSON encode/decode, bilinmeyen tip, eski şema sürümü için birim testleri. *(Kısmen: 96 test; bilinmeyen tip ve bilinmeyen değerlerin varsayılana düşmesi, bozuk kaydın boş ekran olarak açılması test ediliyor. Eksik: eski `schemaVersion`'lı bir kaydı açma testi — ilk şema değişikliğinde yazılacak.)*
+- [ ] **Testler:** JSON encode/decode, bilinmeyen tip, eski şema sürümü için birim testleri. *(Kısmen: 101 test; bilinmeyen tip ve bilinmeyen değerlerin varsayılana düşmesi, bozuk kaydın boş ekran olarak açılması test ediliyor. Eksik: eski `schemaVersion`'lı bir kaydı açma testi — ilk şema değişikliğinde yazılacak.)*
 
 ---
 
@@ -97,7 +97,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
   * Seçili elemanın metnini, rengini veya ikonunu değiştiren alt panel (`.sheet` + `presentationDetents`).
   * Silme, klonlama, geri al / yinele.
   * Paletten ekleme: önce **dokunarak ekleme**, ardından sürükle-bırak.
-- [ ] **Görseller:** *(Kısmen: hazır görsel kütüphanesi — Microsoft Fluent Emoji'den 28 yiyecek-içecek görseli (MIT), renkli ya da tek renk + renk seçimi; fotoğraf yükleme (`PhotosPicker`, en fazla 2048 px PNG) ve cihazda arka plan silme (Vision, simülatörde çalışmaz). Eksik: diğer kategoriler; MIT lisans metnini gösteren "Lisanslar" ekranı (yayından önce şart); silinen proje/elemanların fotoğraf dosyalarını temizleme (çoğaltılan elemanlar aynı dosyayı paylaşıyor).)*
+- [ ] **Görseller:** *(Kısmen: hazır görsel kütüphanesi — Microsoft Fluent Emoji'den 28 yiyecek-içecek görseli (MIT), renkli ya da tek renk + renk seçimi; fotoğraf yükleme (`PhotosPicker`, en fazla 2048 px PNG) ve cihazda arka plan silme (Vision, simülatörde çalışmaz); hiçbir elemanın kullanmadığı fotoğraflar açılışta siliniyor (bozuk kayıt varsa hiçbiri silinmez). Eksik: diğer kategoriler; MIT lisans metnini gösteren "Lisanslar" ekranı (yayından önce şart); iCloud açılınca temizliğin diğer cihazların fotoğraflarını silmemesi.)*
 - [ ] **Çoklu Ekran & Önizleme Modu:**
   * Ekran ekleme/silme, elemanlara "şu ekrana git" aksiyonu bağlama.
   * Editör çizgilerinin gizlendiği canlı prototip modu.

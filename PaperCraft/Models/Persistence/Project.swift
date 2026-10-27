@@ -40,6 +40,17 @@ final class Project {
         return "\(base) \(number)"
     }
 
+    /// Tüm projelerde kullanılan fotoğrafların dosya adları.
+    /// Bir kayıt bile okunamazsa `nil`: içindeki adları bilemeyiz, temizlik o fotoğrafları silmesin.
+    static func uploadedImageNames(in projects: [Project]) -> Set<String>? {
+        var names: Set<String> = []
+        for record in projects.flatMap(\.sortedScreens) {
+            guard let screen = record.screen else { return nil }
+            names.formUnion(screen.uploadedImageNames)
+        }
+        return names
+    }
+
     /// Ekran kayıtları, sırasıyla.
     var sortedScreens: [ScreenRecord] {
         (screens ?? []).sorted { $0.order < $1.order }
