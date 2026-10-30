@@ -22,6 +22,11 @@ struct EditorView: View {
     /// Tek dokunuş sadece seçer; sayfa açılmadan taşınır ve boyutlandırılır.
     @State private var wantsProperties = false
 
+    /// "Dene" ile açılan tam ekran önizleme.
+    @State private var isPreviewing = false
+    /// Canvas kartının ekrandaki yeri; önizleme buradan büyür.
+    @State private var canvasCardFrame: CGRect = .zero
+
     /// Özellikler sayfasının yarım açıkken yüksekliği (point).
     private static let propertiesSheetHeight: CGFloat = 340
 
@@ -56,14 +61,18 @@ struct EditorView: View {
                         isCatalogOpen.toggle()
                     }
                 },
-                onPreview: { /* T6'da önizleme açılacak */ }
+                onPreview: {
+                    wantsProperties = false
+                    isPreviewing = true
+                }
             )
             // Canvas yukarı kaydığında üst barın altından geçsin, üstüne binmesin
             .zIndex(1)
             CanvasView(viewModel: viewModel,
                        onDoubleTap: { wantsProperties = true },
                        // Sayfa açıkken canvas küçülmez; seçili eleman sayfanın altında kalırsa yukarı kayar.
-                       bottomInset: isShowingProperties.wrappedValue ? Self.propertiesSheetHeight : 0)
+                       bottomInset: isShowingProperties.wrappedValue ? Self.propertiesSheetHeight : 0,
+                       onCardFrameChange: { canvasCardFrame = $0 })
                 .padding()
                 // overlay: canvas'ın boyutunu değiştirmeden üstüne yüzer
                 .overlay(alignment: .bottom) {
@@ -112,6 +121,14 @@ struct EditorView: View {
                 .presentationDragIndicator(.visible)
                 // Sayfa açıkken de canvas'a dokunup başka eleman seçilebilsin.
                 .presentationBackgroundInteraction(.enabled(upThrough: .height(Self.propertiesSheetHeight)))
+        }
+        // Önizleme ekranın o anki halinin kopyasıyla açılır; ayrı sayfa değil, kart yerinde büyür
+        .overlay {
+            if isPreviewing {
+                PreviewView(screen: viewModel.screen,
+                            cardFrame: canvasCardFrame,
+                            onClose: { isPreviewing = false })
+            }
         }
     }
 

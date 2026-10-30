@@ -16,7 +16,7 @@ struct NavigationBarElementView: View {
     private var alignment: TextAlign { properties.textAlignment ?? mode.defaultAlignment }
     private var verticalAlignment: VerticalAlign { properties.verticalAlignment ?? mode.defaultVerticalAlignment }
 
-    private var backgroundColor: Color {
+    var backgroundColor: Color {
         properties.fillColor.flatMap(Color.init(hexString:)) ?? Color(white: 0.98)
     }
 

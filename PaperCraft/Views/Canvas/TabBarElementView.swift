@@ -11,6 +11,8 @@ import SwiftUI
 /// sekmeler ortadadır, seçili sekmenin arkasında yumuşak bir vurgu ve barın altında gölge olur.
 struct TabBarElementView: View {
     let properties: ElementProperties
+    /// Önizlemede elemanın değiştirilebilir kopyası; dokunulan sekme seçilir. Canvas'ta `nil`.
+    var interactive: Binding<ElementProperties>? = nil
 
     /// iOS'taki alt menünün sekme satırı yüksekliği.
     static let rowHeight: CGFloat = 49
@@ -87,6 +89,10 @@ struct TabBarElementView: View {
             // Aynı yazılı iki sekme olabilir, o yüzden sıra numarasıyla
             ForEach(items.indices, id: \.self) { index in
                 tab(items[index], isSelected: index == selectedIndex)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        interactive?.wrappedValue.selectedIndex = index
+                    }
             }
         }
     }

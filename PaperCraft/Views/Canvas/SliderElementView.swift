@@ -9,6 +9,14 @@ import SwiftUI
 /// Parçaların genişlikleri `SliderLayout`'tan gelir; çubuk kalan yeri doldurur.
 struct SliderElementView: View {
     let properties: ElementProperties
+    /// Önizlemede elemanın değiştirilebilir kopyası; canvas'ta `nil` (kaydırılamaz).
+    var interactive: Binding<ElementProperties>? = nil
+
+    private var value: Binding<Double> {
+        guard let interactive else { return .constant(properties.sliderValue) }
+        return Binding(get: { interactive.wrappedValue.sliderValue },
+                       set: { interactive.wrappedValue.value = $0 })
+    }
 
     private var showsSideIcons: Bool { properties.showsSideIcons ?? false }
     private var showsValue: Bool { properties.showsValue ?? false }
@@ -21,7 +29,7 @@ struct SliderElementView: View {
     var body: some View {
         HStack(spacing: SliderLayout.spacing) {
             if showsSideIcons { icon(properties.minSymbolName ?? "minus") }
-            Slider(value: .constant(properties.sliderValue), in: properties.sliderRange)
+            Slider(value: value, in: properties.sliderRange)
                 .tint(tintColor)
             if showsSideIcons { icon(properties.maxSymbolName ?? "plus") }
             if showsValue {

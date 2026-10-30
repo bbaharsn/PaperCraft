@@ -55,7 +55,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
   * 10–15 gerçek el çizimi topla (bu set ileride doğruluk testi için sabit kalır).
   * Seçilen AI sağlayıcısına gönder, JSON çıktılarını incele: koordinat isabeti, tip doğruluğu, metin okuma.
   * Sonuçlara göre veri şemasını kesinleştir.
-- [ ] **Testler:** JSON encode/decode, bilinmeyen tip, eski şema sürümü için birim testleri. *(Kısmen: 101 test; bilinmeyen tip ve bilinmeyen değerlerin varsayılana düşmesi, bozuk kaydın boş ekran olarak açılması test ediliyor. Eksik: eski `schemaVersion`'lı bir kaydı açma testi — ilk şema değişikliğinde yazılacak.)*
+- [ ] **Testler:** JSON encode/decode, bilinmeyen tip, eski şema sürümü için birim testleri. *(Kısmen: 108 test; bilinmeyen tip ve bilinmeyen değerlerin varsayılana düşmesi, bozuk kaydın boş ekran olarak açılması test ediliyor. Eksik: eski `schemaVersion`'lı bir kaydı açma testi — ilk şema değişikliğinde yazılacak.)*
 
 ---
 
@@ -98,7 +98,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
   * Silme, klonlama, geri al / yinele.
   * Paletten ekleme: önce **dokunarak ekleme**, ardından sürükle-bırak.
 - [ ] **Görseller:** *(Kısmen: hazır görsel kütüphanesi — Microsoft Fluent Emoji'den 28 yiyecek-içecek görseli (MIT), renkli ya da tek renk + renk seçimi; fotoğraf yükleme (`PhotosPicker`, en fazla 2048 px PNG) ve cihazda arka plan silme (Vision, simülatörde çalışmaz); hiçbir elemanın kullanmadığı fotoğraflar açılışta siliniyor (bozuk kayıt varsa hiçbiri silinmez). Eksik: diğer kategoriler; MIT lisans metnini gösteren "Lisanslar" ekranı (yayından önce şart); iCloud açılınca temizliğin diğer cihazların fotoğraflarını silmemesi.)*
-- [ ] **Çoklu Ekran & Önizleme Modu:**
+- [ ] **Çoklu Ekran & Önizleme Modu:** *(Kısmen: "Dene" ile canvas kartı büyüyerek tam ekran önizlemeye dönüşür; üst bar her telefonda güvenli alanın altına, alt menü en alta oturur; switch, slider, metin kutusu ve sekmeler dokunuşa tepki verir, butonlar basınca kararır. Önizleme ekranın kopyasıyla çalışır, tasarımı değiştirmez; ✕ ya da aşağı kaydırmayla kart yerine küçülerek kapanır. Eksik: birden fazla ekran ve buton → ekran bağlantıları; klavye açılınca alttaki metin kutusunun kaymaması.)*
   * Ekran ekleme/silme, elemanlara "şu ekrana git" aksiyonu bağlama.
   * Editör çizgilerinin gizlendiği canlı prototip modu.
 - [x] **Kalıcılık:** Projelerim ekranı SwiftData ile çalışır. *(Oluştur, aç, yeniden adlandır, sil; editörde her değişiklik otomatik kaydedilir; ilk açılışta örnek proje.)*

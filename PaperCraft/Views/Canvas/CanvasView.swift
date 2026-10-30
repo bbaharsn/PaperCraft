@@ -17,14 +17,17 @@ struct CanvasView: View {
     /// Alttan bir sayfanın kapattığı yükseklik (point). Tuval küçülmez; seçili eleman
     /// bu alanın altında kalacaksa tuval o eleman görünene kadar yukarı kayar.
     var bottomInset: CGFloat = 0
+    /// Kartın ekrandaki yeri değişince çağrılır; önizleme buradan büyür.
+    var onCardFrameChange: (CGRect) -> Void = { _ in }
 
     /// Şu an sürüklenen eleman ve parmağın ne kadar kaydığı (tuvalin kendi point'leri).
     /// Sürükleme bitene kadar model değişmez; sadece görüntü kayar.
     @State private var draggingID: UUID?
     @State private var dragOffset: CGSize = .zero
 
-    /// Referans iPhone ekranı (point). Normalize koordinatlar buna göredir.
-    private let referenceSize = CGSize(width: 393, height: 852)
+    /// Referans iPhone ekranı (point). Normalize koordinatlar buna göredir; önizleme de aynısını kullanır.
+    static let referenceSize = CGSize(width: 393, height: 852)
+    private let referenceSize = Self.referenceSize
 
     var body: some View {
         GeometryReader { geometry in
@@ -44,6 +47,7 @@ struct CanvasView: View {
                 .paperCard()
                 .overlay(alignment: .topLeading) { tape }
                 .offset(y: -liftForSelection(in: geometry.size, scale: scale))
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { onCardFrameChange($0) }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }

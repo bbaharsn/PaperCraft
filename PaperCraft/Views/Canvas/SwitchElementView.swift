@@ -6,9 +6,17 @@
 import SwiftUI
 
 /// Canvas'taki bir anahtarı etiketi, açık/kapalı durumu ve renkleriyle çizer.
-/// Prototipte dokunulamaz; durum Özellikler sayfasından değişir.
+/// Canvas'ta dokunulamaz; durum Özellikler sayfasından değişir. Önizlemede `interactive` verilir ve açılıp kapanır.
 struct SwitchElementView: View {
     let properties: ElementProperties
+    /// Önizlemede elemanın değiştirilebilir kopyası; canvas'ta `nil`.
+    var interactive: Binding<ElementProperties>? = nil
+
+    private var isOn: Binding<Bool> {
+        guard let interactive else { return .constant(properties.isOn ?? false) }
+        return Binding(get: { interactive.wrappedValue.isOn ?? false },
+                       set: { interactive.wrappedValue.isOn = $0 })
+    }
 
     private var labelPosition: SwitchLabelPosition { properties.labelPosition ?? .leading }
     private var label: String { properties.text ?? "" }
@@ -40,7 +48,7 @@ struct SwitchElementView: View {
     }
 
     private var toggle: some View {
-        Toggle("", isOn: .constant(properties.isOn ?? false))
+        Toggle("", isOn: isOn)
             .labelsHidden()
             .toggleStyle(.switch)   // macOS'ta varsayılan onay kutusu olmasın
             .tint(tintColor)

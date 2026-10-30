@@ -6,9 +6,11 @@
 import SwiftUI
 
 /// Canvas'taki bir metin kutusunu kenarlığı, renkleri ve ikonuyla çizer.
-/// Prototipte henüz yazı girilmediği için ipucu metni (placeholder) gösterilir.
+/// Canvas'ta ipucu metni (placeholder) gösterilir; önizlemede `interactive` verilir ve gerçekten yazılır.
 struct TextFieldElementView: View {
     let properties: ElementProperties
+    /// Önizlemede elemanın değiştirilebilir kopyası; yazılan metin `text`'e gider. Canvas'ta `nil`.
+    var interactive: Binding<ElementProperties>? = nil
 
     /// Köşe yarıçapı; seçim çizgisi de aynı değeri kullansın diye butonla ortak.
     static let cornerRadius = ButtonShape.roundedCornerRadius
@@ -29,16 +31,41 @@ struct TextFieldElementView: View {
     var body: some View {
         HStack(spacing: 8) {
             if iconPosition == .leading { icon }
-            Text(properties.placeholder ?? "")
-                .foregroundStyle(textColor.opacity(0.4))
-                .lineLimit(1)
-            Spacer(minLength: 0)
+            if let interactive {
+                input(interactive)
+            } else {
+                Text(properties.placeholder ?? "")
+                    .foregroundStyle(textColor.opacity(0.4))
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
             if iconPosition == .trailing { icon }
         }
         .font(.system(size: 17))
         .padding(.horizontal, border == .underline || border == .none ? 4 : 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background { background }
+    }
+
+    /// Önizlemedeki gerçek metin kutusu; şifre türünde yazılanlar gizlenir.
+    @ViewBuilder
+    private func input(_ interactive: Binding<ElementProperties>) -> some View {
+        let text = Binding(get: { interactive.wrappedValue.text ?? "" },
+                           set: { interactive.wrappedValue.text = $0 })
+        let prompt = Text(properties.placeholder ?? "").foregroundStyle(textColor.opacity(0.4))
+        Group {
+            if properties.inputKind == .secure {
+                SecureField("", text: text, prompt: prompt)
+            } else {
+                TextField("", text: text, prompt: prompt)
+                    #if os(iOS)
+                    .keyboardType(properties.inputKind == .email ? .emailAddress : .default)
+                    .textInputAutocapitalization(properties.inputKind == .email ? .never : .sentences)
+                    #endif
+            }
+        }
+        .textFieldStyle(.plain)
+        .foregroundStyle(textColor)
     }
 
     private var icon: some View {

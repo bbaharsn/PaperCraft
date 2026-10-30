@@ -16,4 +16,11 @@ nonisolated struct PrototypeScreen: Identifiable, Codable, Equatable {
     var uploadedImageNames: Set<String> {
         Set(elements.compactMap(\.properties.uploadedImageName))
     }
+
+    /// Verilen elemanın özelliklerini değiştirir; eleman yoksa hiçbir şey olmaz.
+    /// Önizleme bunu ekranın kendi kopyasında kullanır (switch'i açmak, yazı yazmak…).
+    mutating func updateProperties(of id: UUID, _ change: (inout ElementProperties) -> Void) {
+        guard let index = elements.firstIndex(where: { $0.id == id }) else { return }
+        change(&elements[index].properties)
+    }
 }
