@@ -32,6 +32,18 @@ nonisolated struct PreviewLayout {
                        y: progress * (designHeight - height) + height / 2)
     }
 
+    /// Klavye açıkken elemanın görünmesi için tasarımın ne kadar yukarı kayması gerektiği
+    /// (ekran point'i). Eleman zaten görünüyorsa ya da klavye kapalıysa 0.
+    func keyboardLift(for frame: NormalizedFrame, keyboardHeight: CGFloat) -> CGFloat {
+        guard keyboardHeight > 0 else { return 0 }
+        let margin: CGFloat = 16
+        let height = frame.height * reference.height * scale
+        let elementTop = topInset + center(of: frame).y * scale - height / 2
+        let needed = elementTop + height - (stageSize.height - keyboardHeight - margin)
+        // Eleman çok uzunsa üst kenarı durum çubuğunun altına geçecek kadar kaydırma
+        return max(0, min(needed, elementTop - topInset - margin))
+    }
+
     /// Telefonlardan geniş ekranlarda (iPad, Mac) tasarım telefon oranında kalır.
     static func stageWidth(for screen: CGSize) -> CGFloat {
         min(screen.width, screen.height * 0.6)

@@ -84,4 +84,29 @@ struct PreviewTests {
         #expect(PreviewLayout.stageWidth(for: CGSize(width: 390, height: 844)) == 390)
         #expect(PreviewLayout.stageWidth(for: CGSize(width: 1000, height: 1000)) == 600)
     }
+
+    @Test func keyboardLiftsOnlyWhatItCovers() {
+        let layout = PreviewLayout(stageSize: CGSize(width: 390, height: 844), topInset: 47)
+        let lowField = NormalizedFrame(x: 0.1, y: 0.8, width: 0.8, height: 0.05)
+        let highField = NormalizedFrame(x: 0.1, y: 0.1, width: 0.8, height: 0.05)
+
+        #expect(layout.keyboardLift(for: lowField, keyboardHeight: 0) == 0)
+        #expect(layout.keyboardLift(for: highField, keyboardHeight: 336) == 0)
+
+        let lift = layout.keyboardLift(for: lowField, keyboardHeight: 336)
+        let reference = CanvasView.referenceSize
+        let fieldBottom = 47 + layout.center(of: lowField).y * layout.scale
+            + lowField.height * reference.height * layout.scale / 2
+        #expect(abs(fieldBottom - lift - (844 - 336 - 16)) < 0.001)
+    }
+
+    @Test func tallElementNeverLiftsPastTheStatusBar() {
+        let layout = PreviewLayout(stageSize: CGSize(width: 390, height: 844), topInset: 47)
+        let tall = NormalizedFrame(x: 0, y: 0.1, width: 1, height: 0.8)
+
+        let lift = layout.keyboardLift(for: tall, keyboardHeight: 336)
+        let top = layout.center(of: tall).y * layout.scale
+            - tall.height * CanvasView.referenceSize.height * layout.scale / 2
+        #expect(top - lift >= 16 - 0.001)
+    }
 }

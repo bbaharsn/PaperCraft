@@ -18,6 +18,10 @@ struct PreviewView: View {
     @State private var isExpanded = false
     /// Aşağı kaydırırken ekranın ne kadar indiği (point).
     @State private var dismissOffset: CGFloat = 0
+    /// Açık klavyenin yüksekliği (point); kapalıyken 0.
+    @State private var keyboardHeight: CGFloat = 0
+    /// Yazı yazılan metin kutusu.
+    @FocusState private var focusedElementID: UUID?
 
     /// Bu kadar aşağı kaydırılınca önizleme kapanır.
     private static let dismissDistance: CGFloat = 140
@@ -70,6 +74,15 @@ struct PreviewView: View {
         // Klavye açılınca da tasarım yerinden oynamaz
         .ignoresSafeArea(.keyboard)
         .simultaneousGesture(dismissGesture)
+        #if os(iOS)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+            let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+            keyboardHeight = frame?.height ?? 0
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardHeight = 0
+        }
+        #endif
         .onAppear {
             withAnimation(.snappy(duration: 0.4)) { isExpanded = true }
         }
@@ -78,19 +91,24 @@ struct PreviewView: View {
     /// Tasarım: durum çubuğu payı ve elemanlar. Gerçek boyutta çizip ekrana sığdırılır; canvas ile aynı oranlar.
     private func stage(_ layout: PreviewLayout) -> some View {
         let size = CanvasView.referenceSize
+        let focusedFrame = screen.elements.first { $0.id == focusedElementID }?.frame
+        let lift = focusedFrame.map { layout.keyboardLift(for: $0, keyboardHeight: keyboardHeight) } ?? 0
         return ZStack(alignment: .topLeading) {
             Theme.paper
                 // Boş yere dokununca klavye kapansın
                 .onTapGesture { hideKeyboard() }
 
-            // Üst bar, gerçek uygulamadaki gibi durum çubuğunun arkasına da uzanır
-            statusBarFill
-                .frame(height: layout.topInset)
-
             elementsLayer(layout)
                 .frame(width: size.width, height: layout.designHeight)
                 .scaleEffect(layout.scale, anchor: .topLeading)
-                .offset(y: layout.topInset)
+                // Klavye yazılan kutuyu kapatacaksa tasarım yukarı kayar
+                .offset(y: layout.topInset - lift)
+                .animation(.snappy(duration: 0.25), value: lift)
+
+            // Üst bar, gerçek uygulamadaki gibi durum çubuğunun arkasına da uzanır;
+            // tasarım yukarı kayınca elemanlar bunun altından geçer
+            statusBarFill
+                .frame(height: layout.topInset)
         }
         .frame(width: layout.stageSize.width, height: layout.stageSize.height, alignment: .topLeading)
     }
@@ -98,7 +116,7 @@ struct PreviewView: View {
     /// Ekranda üst bar varsa durum çubuğunun arkası onun rengini alır.
     private var statusBarFill: Color {
         let navigationBar = screen.elements.first { $0.type == .navigationBar }
-        return navigationBar.map { NavigationBarElementView(properties: $0.properties).backgroundColor } ?? .clear
+        return navigationBar.map { NavigationBarElementView(properties: $0.properties).backgroundColor } ?? Theme.paper
     }
 
     /// Tüm elemanlar, gerçek iPhone point'leriyle yerleştirilmiş ve dokunulabilir halde.
@@ -108,6 +126,7 @@ struct PreviewView: View {
             ForEach(Array(screen.elements.enumerated()), id: \.element.id) { index, element in
                 let frame = element.frame
                 ElementView(element: element, interactive: binding(for: element))
+                    .focused($focusedElementID, equals: element.id)
                     .frame(width: frame.width * size.width, height: frame.height * size.height)
                     .rotationEffect(.degrees(element.properties.rotation ?? 0))
                     .position(layout.center(of: frame))
