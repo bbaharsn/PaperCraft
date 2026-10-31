@@ -93,7 +93,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 - [x] **Seçim & Sürükleme:** *(Ayrıca: köşelerden boyutlandırma, görselde döndürme tutamacı (0/90/180/270°'ye yapışır), son dokunulan eleman en üste gelir.)*
   * Dokunulan eleman `selectedElement` olur, etrafına çerçeve çizilir.
   * Sürükleme sırasında geçici durum (`@GestureState`); model ve geri al kaydı yalnızca sürükleme bitince güncellenir (performans).
-- [ ] **Düzenleme Araçları (Alt Panel):** *(Kısmen: 9 elemanın hepsinin Özellikler sayfası var (katalogda sembol de var: eklerken önce sembol seçilir; ikon, boyut, renk, dolu/çizgi, döndürme, bağlantı) (çift dokunuşla açılır, değişiklik anında canvas'a yansır); Sil, Çoğalt (⌘D), geri al / yinele; katalogdan dokunarak ekleme. Eksik: katalogdan sürükle-bırak.)*
+- [ ] **Düzenleme Araçları (Alt Panel):** *(Kısmen: 9 elemanın hepsinin Özellikler sayfası var (katalogda sembol de var: eklerken önce sembol seçilir; ikon, boyut, renk, dolu/çizgi, döndürme, bağlantı) (çift dokunuşla açılır, değişiklik anında canvas'a yansır); Sil, Çoğalt (⌘D), geri al / yinele; katalogdan dokunarak ekleme; sayfa arka planı (düz renk ya da iki veya üç renkli geçiş, üç yön; Medya sekmesindeki kartla ya da boş yere çift dokunarak açılır). Eksik: katalogdan sürükle-bırak.)*
   * Seçili elemanın metnini, rengini veya ikonunu değiştiren alt panel (`.sheet` + `presentationDetents`).
   * Silme, klonlama, geri al / yinele.
   * Paletten ekleme: önce **dokunarak ekleme**, ardından sürükle-bırak.

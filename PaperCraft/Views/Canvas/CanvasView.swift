@@ -14,6 +14,8 @@ struct CanvasView: View {
     let viewModel: EditorViewModel
     /// Bir elemana çift dokunulunca (seçildikten sonra) çağrılır; ör. Özellikler sayfasını açmak için.
     var onDoubleTap: () -> Void = {}
+    /// Sayfada boş bir yere çift dokunulunca çağrılır; ör. arka plan ayarlarını açmak için.
+    var onBackgroundDoubleTap: () -> Void = {}
     /// Alttan bir sayfanın kapattığı yükseklik (point). Tuval küçülmez; seçili eleman
     /// bu alanın altında kalacaksa tuval o eleman görünene kadar yukarı kayar.
     var bottomInset: CGFloat = 0
@@ -35,9 +37,14 @@ struct CanvasView: View {
 
             elementsLayer(scale: scale)
                 .frame(width: referenceSize.width, height: referenceSize.height)
-                .background(Theme.paper)
-                .contentShape(Rectangle())
-                .onTapGesture { viewModel.select(nil) }
+                // Dokunuşlar arka planın üstünde; elemana dokunmak buraya gelmez.
+                .background(
+                    ScreenBackgroundView(background: viewModel.screen.background)
+                        .contentShape(Rectangle())
+                        .onTapGesture(count: 2) { onBackgroundDoubleTap() }
+                        // Tek dokunuş beklemeden hemen seçimi kaldırsın diye çift dokunuşla aynı anda dinlenir.
+                        .simultaneousGesture(TapGesture().onEnded { viewModel.select(nil) })
+                )
                 // Gerçek boyutta çizilen tuvali ekrana sığacak kadar küçült
                 .scaleEffect(scale, anchor: .topLeading)
                 .frame(width: referenceSize.width * scale,

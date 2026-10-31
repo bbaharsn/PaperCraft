@@ -29,7 +29,7 @@ struct ScreenThumbnail: View {
                 }
             }
             .frame(width: referenceSize.width, height: referenceSize.height)
-            .background(Theme.paper)
+            .background(ScreenBackgroundView(background: screen.background))
             .scaleEffect(scale, anchor: .topLeading)
             .frame(width: geometry.size.width, height: geometry.size.height, alignment: .topLeading)
         }

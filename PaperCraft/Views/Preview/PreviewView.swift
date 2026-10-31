@@ -106,7 +106,7 @@ struct PreviewView: View {
         let lift = focusedFrame.map { layout.keyboardLift(for: $0, keyboardHeight: keyboardHeight) } ?? 0
         return ZStack(alignment: .topLeading) {
             ZStack(alignment: .topLeading) {
-                Theme.paper
+                ScreenBackgroundView(background: screen.background)
                     // Boş yere dokununca klavye kapansın
                     .onTapGesture { hideKeyboard() }
 
@@ -119,8 +119,7 @@ struct PreviewView: View {
 
                 // Üst bar, gerçek uygulamadaki gibi durum çubuğunun arkasına da uzanır;
                 // tasarım yukarı kayınca elemanlar bunun altından geçer
-                statusBarFill
-                    .frame(height: layout.topInset)
+                statusBarFill(layout)
             }
             // Sayfa değişince yenisi yandan kayarak gelir
             .id(screen.id)
@@ -130,9 +129,19 @@ struct PreviewView: View {
     }
 
     /// Ekranda üst bar varsa durum çubuğunun arkası onun rengini alır.
-    private var statusBarFill: Color {
-        let navigationBar = screen.elements.first { $0.type == .navigationBar }
-        return navigationBar.map { NavigationBarElementView(properties: $0.properties).backgroundColor } ?? Theme.paper
+    /// Yoksa arka planın aynı şeridi çizilir; geçiş kesintisiz devam eder.
+    @ViewBuilder
+    private func statusBarFill(_ layout: PreviewLayout) -> some View {
+        if let navigationBar = screen.elements.first(where: { $0.type == .navigationBar }) {
+            NavigationBarElementView(properties: navigationBar.properties).backgroundColor
+                .frame(height: layout.topInset)
+        } else {
+            ScreenBackgroundView(background: screen.background)
+                .mask(alignment: .top) {
+                    Rectangle().frame(height: layout.topInset)
+                }
+                .allowsHitTesting(false)
+        }
     }
 
     /// Tüm elemanlar, gerçek iPhone point'leriyle yerleştirilmiş ve dokunulabilir halde.

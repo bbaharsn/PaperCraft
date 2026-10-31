@@ -11,6 +11,8 @@ nonisolated struct PrototypeScreen: Identifiable, Codable, Equatable {
     var id: UUID = UUID()
     var name: String
     var elements: [CanvasElement] = []
+    /// Sayfanın arka planı; `nil` ise kağıt rengi. Eski kayıtlar bu alan olmadan da açılır.
+    var background: ScreenBackground?
 
     /// Ekrandaki yüklenmiş fotoğrafların dosya adları; çoğaltılan elemanlar aynı adı paylaşır, bir kez sayılır.
     var uploadedImageNames: Set<String> {

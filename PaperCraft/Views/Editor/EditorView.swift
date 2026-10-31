@@ -20,6 +20,8 @@ struct EditorView: View {
     @State private var isCatalogOpen = false
     /// Katalogdan sembol eklenirken önce sembol seçilir; eleman seçimden sonra eklenir.
     @State private var isPickingSymbol = false
+    /// Sayfanın "Arka Plan" ayarları açık mı?
+    @State private var isEditingBackground = false
 
     /// Kullanıcı Özellikler sayfasını istedi mi (çift dokunuş)?
     /// Tek dokunuş sadece seçer; sayfa açılmadan taşınır ve boyutlandırılır.
@@ -79,6 +81,7 @@ struct EditorView: View {
             .zIndex(1)
             CanvasView(viewModel: viewModel,
                        onDoubleTap: { wantsProperties = true },
+                       onBackgroundDoubleTap: { isEditingBackground = true },
                        // Sayfa açıkken canvas küçülmez; seçili eleman sayfanın altında kalırsa yukarı kayar.
                        bottomInset: isShowingProperties.wrappedValue ? Self.propertiesSheetHeight : 0,
                        onCardFrameChange: { canvasCardFrame = $0 })
@@ -96,6 +99,13 @@ struct EditorView: View {
                 }
                 .animation(.snappy, value: viewModel.selectedElementID)
                 .animation(.snappy, value: wantsProperties)
+                .sheet(isPresented: $isEditingBackground) {
+                    BackgroundPropertiesSheet(viewModel: viewModel)
+                        .presentationDetents([.height(Self.propertiesSheetHeight), .large])
+                        .presentationDragIndicator(.visible)
+                        // Sayfa açıkken değişiklik canvas'ta görünsün, üstü kararmasın.
+                        .presentationBackgroundInteraction(.enabled(upThrough: .height(Self.propertiesSheetHeight)))
+                }
 
             if isCatalogOpen {
                 CatalogPanel(
@@ -107,6 +117,10 @@ struct EditorView: View {
                         } else {
                             viewModel.addElement(of: type)
                         }
+                    },
+                    onBackground: {
+                        wantsProperties = false
+                        isEditingBackground = true
                     }
                 )
                     .transition(.move(edge: .bottom))
@@ -124,7 +138,7 @@ struct EditorView: View {
         #endif
         // Seçim tamamen kalkınca istek de sıfırlanır; yoksa sonraki tek dokunuş sayfayı açardı.
         .onChange(of: viewModel.selectedElementID) { _, newID in
-            if newID == nil { wantsProperties = false }
+            if newID == nil { wantsProperties = false } else { isEditingBackground = false }
         }
         // Otomatik kaydetme: ekran her değiştiğinde projeye yazılır.
         .onChange(of: viewModel.screen) { _, newScreen in

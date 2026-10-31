@@ -19,6 +19,19 @@ extension EditorViewModel {
         )
     }
 
+    /// Sayfanın arka planının bir özelliğine bağlanan `Binding`.
+    /// Arka plan henüz yoksa ilk değişiklikte varsayılanlarla oluşturulur.
+    func backgroundBinding<Value>(_ keyPath: WritableKeyPath<ScreenBackground, Value>) -> Binding<Value> {
+        Binding(
+            get: { (self.screen.background ?? ScreenBackground())[keyPath: keyPath] },
+            set: { newValue in
+                var background = self.screen.background ?? ScreenBackground()
+                background[keyPath: keyPath] = newValue
+                self.screen.background = background
+            }
+        )
+    }
+
     /// Seçili alt menüdeki bir sekmenin yazısına ya da ikonuna bağlanan `Binding`.
     func tabBinding(at index: Int, _ keyPath: WritableKeyPath<TabItem, String>) -> Binding<String> {
         Binding(

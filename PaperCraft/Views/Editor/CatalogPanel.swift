@@ -10,12 +10,16 @@ struct CatalogPanel: View {
     let catalog: ComponentCatalog
     /// Bir karta basılınca hangi türün seçildiğini dışarıya haber verir.
     let onSelect: (ElementType) -> Void
+    /// "arka plan" kartına basılınca çağrılır. Bu kart eleman eklemez, sayfanın ayarını açar.
+    var onBackground: () -> Void = {}
 
     /// Seçili sekme. Henüz seçilmediyse ilk kategori gösterilir.
     @State private var selectedCategory: String?
 
     /// Kartların sırayla alacağı eğim açıları (derece).
     private let tilts: [Double] = [-2, 1.5, -1, 2]
+    /// "arka plan" kartının durduğu sekme.
+    private let backgroundCategory = "Medya"
 
     private var categories: [String] {
         catalog.categories
@@ -71,6 +75,10 @@ struct CatalogPanel: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                if currentCategory == backgroundCategory {
+                    backgroundCard(tilt: tilts[cards.count % tilts.count])
+                }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 24)
@@ -80,6 +88,20 @@ struct CatalogPanel: View {
             .overlay(alignment: .top) {
                 Rectangle().fill(Theme.ink).frame(height: 1)
             }
+    }
+
+    /// Katalog JSON'ında değil, çünkü tuvale eleman eklemiyor.
+    private func backgroundCard(tilt: Double) -> some View {
+        Button(action: onBackground) {
+            CatalogCardFrame(title: "arka plan", tilt: tilt) {
+                Circle()
+                    .fill(LinearGradient(colors: [Theme.paper, Theme.accent],
+                                         startPoint: .topLeading, endPoint: .bottomTrailing))
+                    .overlay(Circle().stroke(Theme.ink, lineWidth: 1))
+                    .frame(width: 40, height: 40)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 

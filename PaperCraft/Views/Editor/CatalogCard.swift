@@ -12,16 +12,9 @@ struct CatalogCard: View {
     let tilt: Double
 
     var body: some View {
-        VStack(spacing: 14) {
+        CatalogCardFrame(title: definition.displayName, tilt: tilt) {
             preview
-                .frame(height: 50)
-            Text(definition.displayName)
-                .font(.system(size: 15, weight: .semibold).italic())
-                .foregroundStyle(Theme.ink)
         }
-        .frame(width: 104, height: 128)
-        .paperCard(cornerRadius: 8)
-        .rotationEffect(.degrees(tilt))
     }
 
     /// Bazı bileşenlerin tasarımdaki özel çizimi var; diğerleri katalogdaki ikonu kullanır.
