@@ -48,7 +48,7 @@ struct PersistenceTests {
         var screen = try loginScreen()
         screen.elements[0].properties.text = "Menü"
 
-        project.saveFirstScreen(screen)
+        project.save(screen, to: project.sortedScreens[0])
 
         #expect(project.firstScreen.elements[0].properties.text == "Menü")
         #expect(project.updatedAt >= before)
@@ -116,7 +116,7 @@ struct PersistenceTests {
         // Editörde bir buton ekleyip kaydet (EditorView'ın onChange'i bunu yapar)
         let editor = EditorViewModel(catalog: try ComponentCatalog.load(), screen: project.firstScreen)
         editor.addElement(of: .button)
-        project.saveFirstScreen(editor.screen)
+        project.save(editor.screen, to: project.sortedScreens[0])
 
         // Yeniden açınca buton orada
         let reopened = EditorViewModel(catalog: try ComponentCatalog.load(), screen: project.firstScreen)

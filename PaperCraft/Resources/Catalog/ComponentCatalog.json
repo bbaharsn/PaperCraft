@@ -285,6 +285,32 @@
         "fotoğraf",
         "ikon"
       ]
+    },
+    {
+      "type": "symbol",
+      "displayName": "sembol",
+      "category": "Medya",
+      "paletteSymbol": "star",
+      "placement": "free",
+      "defaultSize": {
+        "width": 44,
+        "height": 44
+      },
+      "minSize": {
+        "width": 16,
+        "height": 16
+      },
+      "defaultProperties": {
+        "symbolName": "heart",
+        "tintColor": "#111111"
+      },
+      "aiAliases": [
+        "symbol",
+        "icon button",
+        "glyph",
+        "sembol",
+        "simge"
+      ]
     }
   ]
 }

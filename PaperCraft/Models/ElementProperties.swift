@@ -27,6 +27,8 @@ nonisolated struct ElementProperties: Codable, Equatable {
 
     var shape: ButtonShape?
     var fill: ButtonFill?
+    /// Önizlemede butona, görsele, sembole ya da üst barın sağ butonuna basınca ne olacağı; boşsa hiçbir şey.
+    var action: ElementAction?
 
     // MARK: - Metin görünümü
 
@@ -96,6 +98,12 @@ nonisolated struct ElementProperties: Codable, Equatable {
     var tabBarCorner: TabBarCorner?
     /// Arka plan saydam mı: arkadaki içerik bulanık görünür (cam görünüm).
     var isTranslucent: Bool?
+
+    // MARK: - Sembol görünümü
+    // Hangi sembol olduğu `symbolName`'de, rengi `tintColor`'da durur.
+
+    /// Sembol dolu mu çizilsin, çizgi mi.
+    var isSymbolFilled: Bool?
 
     // MARK: - Görsel görünümü
     // Tek renk halinin rengi `tintColor`'da, görsel seçilmemişken çizilen ikon `symbolName`'de durur.

@@ -10,6 +10,10 @@ import SwiftUI
 /// büyük başlıkta butonlar üstte kalır, başlık altlarındaki alanda konumlanır.
 struct NavigationBarElementView: View {
     let properties: ElementProperties
+    /// Önizlemede geri okuna basınca çağrılır; canvas'ta `nil` (sadece görüntü).
+    var onBack: (() -> Void)? = nil
+    /// Önizlemede sağ butona basınca çağrılır; canvas'ta `nil`.
+    var onTrailing: (() -> Void)? = nil
 
     private var mode: NavigationTitleMode { properties.titleDisplayMode ?? .inline }
     private var title: String { properties.text ?? "" }
@@ -140,7 +144,17 @@ struct NavigationBarElementView: View {
             .minimumScaleFactor(0.5)
     }
 
+    @ViewBuilder
     private var backButton: some View {
+        if let onBack {
+            Button(action: onBack) { backLabel }
+                .buttonStyle(PressDimmingButtonStyle())
+        } else {
+            backLabel
+        }
+    }
+
+    private var backLabel: some View {
         HStack(spacing: 4) {
             Image(systemName: "chevron.left")
                 .fontWeight(.semibold)
@@ -152,6 +166,16 @@ struct NavigationBarElementView: View {
 
     @ViewBuilder
     private var trailingButton: some View {
+        if let onTrailing, (properties.trailingItem ?? .none) != .none {
+            Button(action: onTrailing) { trailingLabel }
+                .buttonStyle(PressDimmingButtonStyle())
+        } else {
+            trailingLabel
+        }
+    }
+
+    @ViewBuilder
+    private var trailingLabel: some View {
         switch properties.trailingItem ?? .none {
         case .none:
             EmptyView()

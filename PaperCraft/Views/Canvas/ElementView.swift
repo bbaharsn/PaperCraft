@@ -11,6 +11,8 @@ struct ElementView: View {
     let element: CanvasElement
     /// Önizlemede elemanın değiştirilebilir kopyası; canvas'ta `nil` (sadece görüntü).
     var interactive: Binding<ElementProperties>? = nil
+    /// Önizlemede butona basınca çağrılır.
+    var onAction: (ElementAction) -> Void = { _ in }
 
     var body: some View {
         let properties = element.properties
@@ -21,8 +23,8 @@ struct ElementView: View {
 
         case .button:
             if interactive != nil {
-                // Henüz bir yere gitmez; basınca hafifçe kararır
-                Button {} label: { ButtonElementView(properties: properties) }
+                // Basınca hafifçe kararır; bağlantısı varsa o sayfaya gider
+                Button { onAction(properties.action ?? .none) } label: { ButtonElementView(properties: properties) }
                     .buttonStyle(PressDimmingButtonStyle())
             } else {
                 ButtonElementView(properties: properties)
@@ -32,7 +34,10 @@ struct ElementView: View {
             TextFieldElementView(properties: properties, interactive: interactive)
 
         case .image:
-            ImageElementView(properties: properties)
+            tappable { ImageElementView(properties: properties) }
+
+        case .symbol:
+            tappable { SymbolElementView(properties: properties) }
 
         case .switch:
             SwitchElementView(properties: properties, interactive: interactive)
@@ -41,13 +46,29 @@ struct ElementView: View {
             SliderElementView(properties: properties, interactive: interactive)
 
         case .navigationBar:
-            NavigationBarElementView(properties: properties)
+            NavigationBarElementView(properties: properties,
+                                     onBack: interactive != nil ? { onAction(.back) } : nil,
+                                     onTrailing: interactive != nil ? { onAction(properties.action ?? .none) } : nil)
 
         case .tabBar:
-            TabBarElementView(properties: properties, interactive: interactive)
+            TabBarElementView(properties: properties, interactive: interactive, onAction: onAction)
 
         case .unknown:
             Image(systemName: "questionmark.square.dashed")
+        }
+    }
+}
+
+private extension ElementView {
+    /// Bağlantısı olan görsel ve semboller önizlemede buton gibi davranır.
+    @ViewBuilder
+    func tappable<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        let action = element.properties.action ?? .none
+        if interactive != nil, action != .none {
+            Button { onAction(action) } label: { content().contentShape(Rectangle()) }
+                .buttonStyle(PressDimmingButtonStyle())
+        } else {
+            content()
         }
     }
 }

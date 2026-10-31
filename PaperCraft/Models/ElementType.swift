@@ -12,6 +12,7 @@ nonisolated enum ElementType: String, Codable {
     case button
     case textField
     case image
+    case symbol
     case `switch`
     case slider
     case navigationBar

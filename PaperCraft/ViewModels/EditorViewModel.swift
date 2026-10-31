@@ -39,6 +39,9 @@ final class EditorViewModel {
     /// Şu anki zaman; testlerde saati elle ilerletmek için değiştirilir.
     @ObservationIgnored var now: () -> Date = Date.init
 
+    /// Bu sayfadan gidilebilen diğer sayfalar ("Dokununca" listesi).
+    var linkTargets: [ScreenLink] = []
+
     init(catalog: ComponentCatalog, symbolCatalog: SymbolCatalog = .empty,
          imageLibrary: ImageLibrary = .empty, screen: PrototypeScreen) {
         self.catalog = catalog
@@ -111,6 +114,14 @@ final class EditorViewModel {
     /// Tür katalogda yoksa hiçbir şey yapmaz.
     func addElement(of type: ElementType) {
         guard let element = catalog.makeElement(of: type) else { return }
+        screen.elements.append(element)   // sona eklenen en üstte çizilir
+        selectedElementID = element.id
+    }
+
+    /// Katalogdan seçilen sembolle yeni bir sembol elemanı ekler ve onu seçer.
+    func addSymbol(named name: String) {
+        guard var element = catalog.makeElement(of: .symbol) else { return }
+        element.properties.symbolName = name
         screen.elements.append(element)   // sona eklenen en üstte çizilir
         selectedElementID = element.id
     }

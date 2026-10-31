@@ -30,6 +30,17 @@ extension EditorViewModel {
         )
     }
 
+    /// Seçili alt menüdeki bir sekmenin bağlantısına bağlanan `Binding`.
+    func tabActionBinding(at index: Int) -> Binding<ElementAction> {
+        Binding(
+            get: {
+                guard let items = self.selectedElement?.properties.items, items.indices.contains(index) else { return .none }
+                return items[index].action ?? .none
+            },
+            set: { newValue in self.updateSelectedTab(at: index) { $0.action = newValue } }
+        )
+    }
+
     /// Seçili elemanın genişliğine ya da yüksekliğine (point) bağlanan `Binding`.
     func sizeBinding(_ keyPath: KeyPath<CGSize, CGFloat>) -> Binding<Double> {
         Binding(

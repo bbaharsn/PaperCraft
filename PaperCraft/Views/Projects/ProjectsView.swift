@@ -7,14 +7,14 @@ import SwiftData
 import SwiftUI
 
 /// Uygulamanın açılış ekranı "Projelerim": projeler, yeni proje, yeniden adlandırma ve silme.
-/// Bir projeye dokununca editör açılır.
+/// Bir projeye dokununca sayfaları açılır.
 struct ProjectsView: View {
     @Environment(\.modelContext) private var context
     /// En son düzenlenen en üstte.
     @Query(sort: \Project.updatedAt, order: .reverse) private var projects: [Project]
 
-    /// Açık olan editör(ler); yeni proje oluşturunca doğrudan editöre geçmek için.
-    @State private var path: [Project] = []
+    /// Açık olan proje ve sayfa; yeni proje oluşturunca doğrudan editöre geçmek için.
+    @State private var path = NavigationPath()
     /// Adı değiştirilen proje ve yazılan yeni ad.
     @State private var renamingProject: Project?
     @State private var newName = ""
@@ -44,7 +44,12 @@ struct ProjectsView: View {
             .toolbar(.hidden, for: .navigationBar)
             #endif
             .navigationDestination(for: Project.self) { project in
-                EditorView(project: project)
+                ProjectPagesView(project: project, onOpen: { path.append($0) })
+            }
+            .navigationDestination(for: ScreenRecord.self) { record in
+                if let project = record.project {
+                    EditorView(project: project, record: record)
+                }
             }
         }
         .alert("Yeniden adlandır", isPresented: isRenaming) {
@@ -129,11 +134,12 @@ struct ProjectsView: View {
 
     // MARK: - İşlemler
 
-    /// Boş bir ekranla yeni proje açar ve doğrudan editörüne geçer.
+    /// Boş bir sayfayla yeni proje açar ve doğrudan editörüne geçer.
     private func createProject() {
         let name = Project.uniqueName("Yeni Proje", existing: projects.map(\.name))
-        let project = Project.create(name: name, screen: PrototypeScreen(name: "Ekran 1"), in: context)
+        let project = Project.create(name: name, screen: PrototypeScreen(name: "Sayfa 1"), in: context)
         path.append(project)
+        if let record = project.sortedScreens.first { path.append(record) }
     }
 
     private func rename() {

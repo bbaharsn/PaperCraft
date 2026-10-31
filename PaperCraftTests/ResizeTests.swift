@@ -80,4 +80,13 @@ struct ResizeTests {
         let after = try rect(editor)
         #expect(isClose(after.width, 44) && isClose(after.height, 70))
     }
+
+    @Test func handlesLeaveSmallElementsFreeToDrag() {
+        // Kısa kenarda dokunma alanı tamamen elemanın dışında
+        #expect(SelectionOverlay.outwardShift(side: 24, hitSize: 36, freeSize: 44) == 18)
+        // Orta boyda alan kısmen içeri girer
+        #expect(SelectionOverlay.outwardShift(side: 54, hitSize: 36, freeSize: 44) == 13)
+        // Uzun kenarda alan köşeye ortalanır
+        #expect(SelectionOverlay.outwardShift(side: 200, hitSize: 36, freeSize: 44) == 0)
+    }
 }

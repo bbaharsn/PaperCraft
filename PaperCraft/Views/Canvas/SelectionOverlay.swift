@@ -27,6 +27,9 @@ struct SelectionOverlay: View {
     private let handleSize: CGFloat = 8
     /// Parmakla kolay yakalansın diye görünen tutamaçtan büyük dokunma alanı.
     private let handleHitSize: CGFloat = 36
+    /// Elemanın ortasında tutamaçlara kapatılmayan alan (ekran point'i);
+    /// küçük elemanlar da sürüklenebilsin ve çift dokunulabilsin.
+    private let freeCenterSize: CGFloat = 44
     /// Döndürme tutamacının sağ üst köşeden çapraz uzaklığı (ekran point'i).
     private let rotateHandleOffset: CGFloat = 30
 
@@ -70,8 +73,10 @@ struct SelectionOverlay: View {
                     .allowsHitTesting(false)
 
                 ForEach(ResizeCorner.allCases, id: \.self) { corner in
-                    handle
-                        .position(handlePoint(for: corner, in: size))
+                    let point = handlePoint(for: corner, in: size)
+                    let shift = hitAreaShift(for: corner, in: size)
+                    handle(dotOffset: CGSize(width: -shift.width, height: -shift.height))
+                        .position(x: point.x + shift.width, y: point.y + shift.height)
                         .gesture(resizeGesture(for: corner))
                 }
 
@@ -94,13 +99,29 @@ struct SelectionOverlay: View {
         }
     }
 
-    private var handle: some View {
+    /// Görünen nokta köşede durur; dokunma alanı dışarı kaydırıldıysa nokta ters yöne kayar.
+    private func handle(dotOffset: CGSize) -> some View {
         Circle()
             .fill(.white)
             .overlay(Circle().stroke(.blue, lineWidth: lineWidth / scale))
             .frame(width: handleSize / scale, height: handleSize / scale)
+            .offset(dotOffset)
             .frame(width: handleHitSize / scale, height: handleHitSize / scale)
             .contentShape(Rectangle())
+    }
+
+    /// Tutamacın dokunma alanının köşeden dışarı doğru ne kadar kaydırılacağı (tuval point'i).
+    private func hitAreaShift(for corner: ResizeCorner, in size: CGSize) -> CGSize {
+        let x = Self.outwardShift(side: size.width * scale, hitSize: handleHitSize, freeSize: freeCenterSize) / scale
+        let y = Self.outwardShift(side: size.height * scale, hitSize: handleHitSize, freeSize: freeCenterSize) / scale
+        return CGSize(width: corner.isLeading ? -x : x, height: corner.isTop ? -y : y)
+    }
+
+    /// Bir kenar boyunca dokunma alanının dışarı kayma miktarı (ekran point'i).
+    /// Kenar kısaldıkça alan dışarı çıkar; `freeSize`'dan kısa kenarda tamamen dışarıdadır.
+    static func outwardShift(side: CGFloat, hitSize: CGFloat, freeSize: CGFloat) -> CGFloat {
+        let reachInside = min(hitSize / 2, max(0, (side - freeSize) / 2))
+        return hitSize / 2 - reachInside
     }
 
     /// Sağ üst köşenin çaprazındaki yuvarlak döndürme tutamacı.

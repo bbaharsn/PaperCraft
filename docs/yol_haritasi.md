@@ -37,7 +37,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 ## Phase 1: Veri Mimarisi, JSON Kataloğu & AI Keşfi (Spike)
 > **Amaç:** Platformdan bağımsız veri modelini kurmak ve modelin AI'ın gerçekten üretebildiği çıktıya uygun olduğunu erkenden doğrulamak.
 
-- [ ] **Veri Modeli:** *(Kısmen: `Project` → `ScreenRecord` → `PrototypeScreen` → `CanvasElement[]`, `NormalizedFrame`, `ElementProperties`, `.unknown` yedeği ve kayıtta `schemaVersion` hazır. Eksik: `action`. `zIndex` yerine dizi sırası kullanılıyor.)*
+- [ ] **Veri Modeli:** *(Kısmen: `Project` → `ScreenRecord` → `PrototypeScreen` → `CanvasElement[]`, `NormalizedFrame`, `ElementProperties`, `.unknown` yedeği ve kayıtta `schemaVersion` hazır. `zIndex` yerine dizi sırası kullanılıyor.)*
   * Hiyerarşi: `Project` → `Screen[]` → `Element[]`.
   * `Element`: `id`, `type`, `frame` (**normalize 0…1 koordinatlar**), `properties` (metin, ikon, stil), `zIndex`, opsiyonel `action` (ör. başka bir ekrana git).
   * Referans cihaz çerçevesi (ör. 393×852 pt); normalize koordinatlar ekranda bu çerçeveye göre çizilir.
@@ -55,7 +55,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
   * 10–15 gerçek el çizimi topla (bu set ileride doğruluk testi için sabit kalır).
   * Seçilen AI sağlayıcısına gönder, JSON çıktılarını incele: koordinat isabeti, tip doğruluğu, metin okuma.
   * Sonuçlara göre veri şemasını kesinleştir.
-- [ ] **Testler:** JSON encode/decode, bilinmeyen tip, eski şema sürümü için birim testleri. *(Kısmen: 110 test; bilinmeyen tip ve bilinmeyen değerlerin varsayılana düşmesi, bozuk kaydın boş ekran olarak açılması test ediliyor. Eksik: eski `schemaVersion`'lı bir kaydı açma testi — ilk şema değişikliğinde yazılacak.)*
+- [ ] **Testler:** JSON encode/decode, bilinmeyen tip, eski şema sürümü için birim testleri. *(Kısmen: 122 test; bilinmeyen tip ve bilinmeyen değerlerin varsayılana düşmesi, bozuk kaydın boş ekran olarak açılması test ediliyor. Eksik: eski `schemaVersion`'lı bir kaydı açma testi — ilk şema değişikliğinde yazılacak.)*
 
 ---
 
@@ -93,12 +93,12 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 - [x] **Seçim & Sürükleme:** *(Ayrıca: köşelerden boyutlandırma, görselde döndürme tutamacı (0/90/180/270°'ye yapışır), son dokunulan eleman en üste gelir.)*
   * Dokunulan eleman `selectedElement` olur, etrafına çerçeve çizilir.
   * Sürükleme sırasında geçici durum (`@GestureState`); model ve geri al kaydı yalnızca sürükleme bitince güncellenir (performans).
-- [ ] **Düzenleme Araçları (Alt Panel):** *(Kısmen: 8 elemanın hepsinin Özellikler sayfası var (çift dokunuşla açılır, değişiklik anında canvas'a yansır); Sil, Çoğalt (⌘D), geri al / yinele; katalogdan dokunarak ekleme. Eksik: katalogdan sürükle-bırak.)*
+- [ ] **Düzenleme Araçları (Alt Panel):** *(Kısmen: 9 elemanın hepsinin Özellikler sayfası var (katalogda sembol de var: eklerken önce sembol seçilir; ikon, boyut, renk, dolu/çizgi, döndürme, bağlantı) (çift dokunuşla açılır, değişiklik anında canvas'a yansır); Sil, Çoğalt (⌘D), geri al / yinele; katalogdan dokunarak ekleme. Eksik: katalogdan sürükle-bırak.)*
   * Seçili elemanın metnini, rengini veya ikonunu değiştiren alt panel (`.sheet` + `presentationDetents`).
   * Silme, klonlama, geri al / yinele.
   * Paletten ekleme: önce **dokunarak ekleme**, ardından sürükle-bırak.
 - [ ] **Görseller:** *(Kısmen: hazır görsel kütüphanesi — Microsoft Fluent Emoji'den 28 yiyecek-içecek görseli (MIT), renkli ya da tek renk + renk seçimi; fotoğraf yükleme (`PhotosPicker`, en fazla 2048 px PNG) ve cihazda arka plan silme (Vision, simülatörde çalışmaz); hiçbir elemanın kullanmadığı fotoğraflar açılışta siliniyor (bozuk kayıt varsa hiçbiri silinmez). Eksik: diğer kategoriler; MIT lisans metnini gösteren "Lisanslar" ekranı (yayından önce şart); iCloud açılınca temizliğin diğer cihazların fotoğraflarını silmemesi.)*
-- [ ] **Çoklu Ekran & Önizleme Modu:** *(Kısmen: "Dene" ile canvas kartı büyüyerek tam ekran önizlemeye dönüşür; üst bar her telefonda güvenli alanın altına, alt menü en alta oturur; switch, slider, metin kutusu ve sekmeler dokunuşa tepki verir, butonlar basınca kararır. Önizleme ekranın kopyasıyla çalışır, tasarımı değiştirmez; klavye yazılan kutuyu kapatacaksa tasarım yukarı kayar; ✕ ya da aşağı kaydırmayla kart yerine küçülerek kapanır. Eksik: birden fazla ekran ve buton → ekran bağlantıları.)*
+- [ ] **Çoklu Ekran & Önizleme Modu:** *(Kısmen: "Dene" ile canvas kartı büyüyerek tam ekran önizlemeye dönüşür; üst bar her telefonda güvenli alanın altına, alt menü en alta oturur; switch, slider, metin kutusu ve sekmeler dokunuşa tepki verir, butonlar basınca kararır. Önizleme ekranın kopyasıyla çalışır, tasarımı değiştirmez; klavye yazılan kutuyu kapatacaksa tasarım yukarı kayar; ✕ ya da aşağı kaydırmayla kart yerine küçülerek kapanır. Projede birden fazla sayfa var: ızgarada görünür, eklenir, adlandırılır, silinir; buton, görsel, sembol, üst bar sağ butonu ve alt menü sekmelerinin "Dokununca" bölümünden sayfaya gitme ve geri dönme bağlanır, Dene'de sayfalar yandan kayarak geçer. üst barın geri oku da önceki sayfaya döner. Eksik: metin elemanına bağlantı.)*
   * Ekran ekleme/silme, elemanlara "şu ekrana git" aksiyonu bağlama.
   * Editör çizgilerinin gizlendiği canlı prototip modu.
 - [x] **Kalıcılık:** Projelerim ekranı SwiftData ile çalışır. *(Oluştur, aç, yeniden adlandır, sil; editörde her değişiklik otomatik kaydedilir; ilk açılışta örnek proje.)*

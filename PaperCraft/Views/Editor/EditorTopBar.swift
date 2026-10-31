@@ -5,10 +5,10 @@
 
 import SwiftUI
 
-/// Editörün üst barı: Projelerim'e dönüş, geri al / yinele, katalog butonu ve "Dene" butonu.
+/// Editörün üst barı: sayfalara dönüş, geri al / yinele, katalog butonu ve "Dene" butonu.
 struct EditorTopBar: View {
-    let projectName: String
-    /// "‹ Proje adı"na basılınca Projelerim'e dönülür.
+    let pageName: String
+    /// "‹ Sayfa adı"na basılınca sayfalara dönülür.
     let onBack: () -> Void
     var canUndo = false
     var canRedo = false
@@ -31,13 +31,13 @@ struct EditorTopBar: View {
         .padding(.vertical, 8)
     }
 
-    /// Proje adı uzunsa sonu "…" ile kısalır; butonlar hep sığar.
+    /// Sayfa adı uzunsa sonu "…" ile kısalır; butonlar hep sığar.
     private var backButton: some View {
         Button(action: onBack) {
             HStack(spacing: 4) {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 17, weight: .semibold))
-                Text(projectName)
+                Text(pageName)
                     .font(.system(size: 17, weight: .semibold))
                     .lineLimit(1)
             }
@@ -46,7 +46,7 @@ struct EditorTopBar: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Projelerim'e dön")
+        .accessibilityLabel("Sayfalara dön")
     }
 
     /// Geri al ve yinele tek bir kutuda yan yana; yapılacak bir şey yoksa soluk görünür.
@@ -106,6 +106,6 @@ struct EditorTopBar: View {
 }
 
 #Preview {
-    EditorTopBar(projectName: "Kahve Dükkanı", onBack: {}, canUndo: true, onToggleCatalog: {}, onPreview: {})
+    EditorTopBar(pageName: "Ana Sayfa", onBack: {}, canUndo: true, onToggleCatalog: {}, onPreview: {})
         .background(Theme.background)
 }

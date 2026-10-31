@@ -23,4 +23,20 @@ nonisolated struct PrototypeScreen: Identifiable, Codable, Equatable {
         guard let index = elements.firstIndex(where: { $0.id == id }) else { return }
         change(&elements[index].properties)
     }
+
+    /// Silinen bir sayfaya giden buton, görsel ve sekme bağlantılarını kaldırır.
+    mutating func removeLinks(to screenID: UUID) {
+        let link = ElementAction.goTo(screenID: screenID)
+        for index in elements.indices {
+            if elements[index].properties.action == link {
+                elements[index].properties.action = ElementAction.none
+            }
+            guard let items = elements[index].properties.items else { continue }
+            elements[index].properties.items = items.map { item in
+                var item = item
+                if item.action == link { item.action = ElementAction.none }
+                return item
+            }
+        }
+    }
 }

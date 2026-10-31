@@ -8,15 +8,18 @@
 import SwiftData
 import SwiftUI
 
-/// Bir projenin editörü: üst bar, canvas, katalog ve Özellikler sayfası.
+/// Bir sayfanın editörü: üst bar, canvas, katalog ve Özellikler sayfası.
 /// Her değişiklik anında projeye yazılır; "Kaydet" yok.
 struct EditorView: View {
     let project: Project
+    let record: ScreenRecord
     @State private var viewModel: EditorViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     /// Alt katalog açık mı? Sadece bu ekranı ilgilendiren bir görünüm durumu.
     @State private var isCatalogOpen = false
+    /// Katalogdan sembol eklenirken önce sembol seçilir; eleman seçimden sonra eklenir.
+    @State private var isPickingSymbol = false
 
     /// Kullanıcı Özellikler sayfasını istedi mi (çift dokunuş)?
     /// Tek dokunuş sadece seçer; sayfa açılmadan taşınır ve boyutlandırılır.
@@ -30,9 +33,15 @@ struct EditorView: View {
     /// Özellikler sayfasının yarım açıkken yüksekliği (point).
     private static let propertiesSheetHeight: CGFloat = 340
 
-    init(project: Project) {
+    init(project: Project, record: ScreenRecord) {
         self.project = project
-        _viewModel = State(initialValue: Self.makeEditor(screen: project.firstScreen))
+        self.record = record
+        let screen = record.screen ?? PrototypeScreen(name: "Sayfa")
+        let editor = Self.makeEditor(screen: screen)
+        editor.linkTargets = project.previewScreens
+            .filter { $0.id != screen.id }
+            .map { ScreenLink(id: $0.id, name: $0.name) }
+        _viewModel = State(initialValue: editor)
     }
 
     /// Sayfa, istendiğinde ve seçili elemanın bir Özellikler sayfası olduğunda açıktır.
@@ -50,7 +59,7 @@ struct EditorView: View {
     var body: some View {
         VStack(spacing: 0) {
             EditorTopBar(
-                projectName: project.name,
+                pageName: viewModel.screen.name,
                 onBack: { dismiss() },
                 canUndo: viewModel.canUndo,
                 canRedo: viewModel.canRedo,
@@ -92,10 +101,20 @@ struct EditorView: View {
                 CatalogPanel(
                     catalog: viewModel.catalog,
                     onSelect: { type in
-                        viewModel.addElement(of: type)
+                        if type == .symbol {
+                            wantsProperties = false
+                            isPickingSymbol = true
+                        } else {
+                            viewModel.addElement(of: type)
+                        }
                     }
                 )
                     .transition(.move(edge: .bottom))
+                    .sheet(isPresented: $isPickingSymbol) {
+                        SymbolCatalogSheet(symbols: viewModel.symbolCatalog.symbols) { name in
+                            viewModel.addSymbol(named: name)
+                        }
+                    }
             }
         }
         .background(Theme.background)
@@ -109,7 +128,7 @@ struct EditorView: View {
         }
         // Otomatik kaydetme: ekran her değiştiğinde projeye yazılır.
         .onChange(of: viewModel.screen) { _, newScreen in
-            project.saveFirstScreen(newScreen)
+            project.save(newScreen, to: record)
         }
         // SwiftData kendisi de ara ara kaydeder; editörden çıkarken beklemeden diske yazalım.
         .onDisappear {
@@ -122,10 +141,11 @@ struct EditorView: View {
                 // Sayfa açıkken de canvas'a dokunup başka eleman seçilebilsin.
                 .presentationBackgroundInteraction(.enabled(upThrough: .height(Self.propertiesSheetHeight)))
         }
-        // Önizleme ekranın o anki halinin kopyasıyla açılır; ayrı sayfa değil, kart yerinde büyür
+        // Önizleme sayfaların kopyasıyla bu sayfadan açılır; ayrı sayfa değil, kart yerinde büyür
         .overlay {
             if isPreviewing {
-                PreviewView(screen: viewModel.screen,
+                PreviewView(screens: project.previewScreens,
+                            startID: viewModel.screen.id,
                             cardFrame: canvasCardFrame,
                             onClose: { isPreviewing = false })
             }
@@ -154,7 +174,7 @@ struct EditorView: View {
                                  screen: MockScreens.login(using: try! ComponentCatalog.load()),
                                  in: container.mainContext)
     return NavigationStack {
-        EditorView(project: project)
+        EditorView(project: project, record: project.sortedScreens[0])
     }
     .modelContainer(container)
 }

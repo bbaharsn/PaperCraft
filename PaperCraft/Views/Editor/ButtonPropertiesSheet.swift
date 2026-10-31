@@ -54,6 +54,9 @@ struct ButtonPropertiesSheet: View {
                                 symbols: viewModel.symbolCatalog.symbols)
             }
         }
+
+        TapActionSection(action: viewModel.binding(\.action, default: ElementAction.none),
+                         targets: viewModel.linkTargets)
     }
 
     /// Şekil ayrı ele alınır: daireye geçince çerçevenin de kareye dönmesi gerekir.

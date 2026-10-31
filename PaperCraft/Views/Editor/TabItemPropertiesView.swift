@@ -25,6 +25,9 @@ struct TabItemPropertiesView: View {
                                 symbols: viewModel.symbolCatalog.symbols)
             }
 
+            TapActionSection(action: viewModel.tabActionBinding(at: index),
+                             targets: viewModel.linkTargets)
+
             Section {
                 Button("Sekmeyi Sil", role: .destructive) {
                     viewModel.removeSelectedTab(at: index)

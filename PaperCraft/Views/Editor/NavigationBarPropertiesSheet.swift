@@ -64,6 +64,12 @@ struct NavigationBarPropertiesSheet: View {
             }
         }
 
+        if (properties?.trailingItem ?? .none) != .none {
+            TapActionSection(action: viewModel.binding(\.action, default: ElementAction.none),
+                             targets: viewModel.linkTargets,
+                             title: "Sağ Butona Dokununca")
+        }
+
         Section("Arka Plan") {
             ColorSwatchRow(hex: viewModel.binding(\.fillColor, default: "#F9F9F9"), presets: backgroundPresets)
         }

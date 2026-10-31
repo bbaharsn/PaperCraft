@@ -95,7 +95,7 @@ struct CanvasView: View {
                                              onResize: { corner, delta in
                                                  viewModel.resizeElement(element.id, from: corner, by: delta)
                                              },
-                                             onRotate: element.type == .image ? { degrees in
+                                             onRotate: element.type == .image || element.type == .symbol ? { degrees in
                                                  viewModel.setRotation(element.id,
                                                                        degrees: EditorViewModel.snappedRotation(degrees))
                                              } : nil)

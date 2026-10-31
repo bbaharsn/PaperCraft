@@ -13,6 +13,8 @@ struct TabBarElementView: View {
     let properties: ElementProperties
     /// Önizlemede elemanın değiştirilebilir kopyası; dokunulan sekme seçilir. Canvas'ta `nil`.
     var interactive: Binding<ElementProperties>? = nil
+    /// Önizlemede bağlantılı sekmeye basınca çağrılır.
+    var onAction: (ElementAction) -> Void = { _ in }
 
     /// iOS'taki alt menünün sekme satırı yüksekliği.
     static let rowHeight: CGFloat = 49
@@ -91,7 +93,9 @@ struct TabBarElementView: View {
                 tab(items[index], isSelected: index == selectedIndex)
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        interactive?.wrappedValue.selectedIndex = index
+                        guard let interactive else { return }
+                        interactive.wrappedValue.selectedIndex = index
+                        onAction(items[index].action ?? .none)
                     }
             }
         }

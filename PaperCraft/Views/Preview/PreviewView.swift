@@ -14,7 +14,12 @@ struct PreviewView: View {
     /// Kapanma animasyonu bitince çağrılır.
     let onClose: () -> Void
 
-    @State private var screen: PrototypeScreen
+    /// Projenin sayfalarının kopyası.
+    @State private var screens: [PrototypeScreen]
+    /// Gezilen sayfalar; sondaki açık olan. "Geri dön" bir öncekine iner.
+    @State private var history: [UUID]
+    /// Sayfa geçişinin geldiği yön.
+    @State private var pushEdge: Edge = .trailing
     @State private var isExpanded = false
     /// Aşağı kaydırırken ekranın ne kadar indiği (point).
     @State private var dismissOffset: CGFloat = 0
@@ -26,10 +31,16 @@ struct PreviewView: View {
     /// Bu kadar aşağı kaydırılınca önizleme kapanır.
     private static let dismissDistance: CGFloat = 140
 
-    init(screen: PrototypeScreen, cardFrame: CGRect, onClose: @escaping () -> Void) {
-        _screen = State(initialValue: screen)
+    init(screens: [PrototypeScreen], startID: UUID, cardFrame: CGRect, onClose: @escaping () -> Void) {
+        _screens = State(initialValue: screens)
+        _history = State(initialValue: [startID])
         self.cardFrame = cardFrame
         self.onClose = onClose
+    }
+
+    /// Açık olan sayfa.
+    private var screen: PrototypeScreen {
+        screens.first { $0.id == history.last } ?? screens.first ?? PrototypeScreen(name: "")
     }
 
     var body: some View {
@@ -64,7 +75,7 @@ struct PreviewView: View {
                               y: (isExpanded ? screenSize.height / 2 : card.midY) + dismissOffset)
 
                 closeButton
-                    .padding(.top, insets.top + 4)
+                    .padding(.top, closeButtonTop(layout))
                     .padding(.trailing, insets.trailing + 12)
                     .opacity(isExpanded ? 1 : 0)
             }
@@ -94,21 +105,26 @@ struct PreviewView: View {
         let focusedFrame = screen.elements.first { $0.id == focusedElementID }?.frame
         let lift = focusedFrame.map { layout.keyboardLift(for: $0, keyboardHeight: keyboardHeight) } ?? 0
         return ZStack(alignment: .topLeading) {
-            Theme.paper
-                // Boş yere dokununca klavye kapansın
-                .onTapGesture { hideKeyboard() }
+            ZStack(alignment: .topLeading) {
+                Theme.paper
+                    // Boş yere dokununca klavye kapansın
+                    .onTapGesture { hideKeyboard() }
 
-            elementsLayer(layout)
-                .frame(width: size.width, height: layout.designHeight)
-                .scaleEffect(layout.scale, anchor: .topLeading)
-                // Klavye yazılan kutuyu kapatacaksa tasarım yukarı kayar
-                .offset(y: layout.topInset - lift)
-                .animation(.snappy(duration: 0.25), value: lift)
+                elementsLayer(layout)
+                    .frame(width: size.width, height: layout.designHeight)
+                    .scaleEffect(layout.scale, anchor: .topLeading)
+                    // Klavye yazılan kutuyu kapatacaksa tasarım yukarı kayar
+                    .offset(y: layout.topInset - lift)
+                    .animation(.snappy(duration: 0.25), value: lift)
 
-            // Üst bar, gerçek uygulamadaki gibi durum çubuğunun arkasına da uzanır;
-            // tasarım yukarı kayınca elemanlar bunun altından geçer
-            statusBarFill
-                .frame(height: layout.topInset)
+                // Üst bar, gerçek uygulamadaki gibi durum çubuğunun arkasına da uzanır;
+                // tasarım yukarı kayınca elemanlar bunun altından geçer
+                statusBarFill
+                    .frame(height: layout.topInset)
+            }
+            // Sayfa değişince yenisi yandan kayarak gelir
+            .id(screen.id)
+            .transition(.push(from: pushEdge))
         }
         .frame(width: layout.stageSize.width, height: layout.stageSize.height, alignment: .topLeading)
     }
@@ -125,7 +141,7 @@ struct PreviewView: View {
         return ZStack {
             ForEach(Array(screen.elements.enumerated()), id: \.element.id) { index, element in
                 let frame = element.frame
-                ElementView(element: element, interactive: binding(for: element))
+                ElementView(element: element, interactive: binding(for: element), onAction: perform)
                     .focused($focusedElementID, equals: element.id)
                     .frame(width: frame.width * size.width, height: frame.height * size.height)
                     .rotationEffect(.degrees(element.properties.rotation ?? 0))
@@ -139,8 +155,40 @@ struct PreviewView: View {
     private func binding(for element: CanvasElement) -> Binding<ElementProperties> {
         Binding(
             get: { screen.elements.first { $0.id == element.id }?.properties ?? element.properties },
-            set: { newValue in screen.updateProperties(of: element.id) { $0 = newValue } }
+            set: { newValue in
+                guard let index = screens.firstIndex(where: { $0.id == screen.id }) else { return }
+                screens[index].updateProperties(of: element.id) { $0 = newValue }
+            }
         )
+    }
+
+    /// Kapat butonu üst barın sağındaki butonu kapatmasın diye o varsa barın altına iner.
+    private func closeButtonTop(_ layout: PreviewLayout) -> CGFloat {
+        let bar = screen.elements.first { $0.type == .navigationBar }
+        guard let bar, (bar.properties.trailingItem ?? .none) != .none else { return layout.topInset + 4 }
+        return layout.topInset + bar.frame.height * CanvasView.referenceSize.height * layout.scale + 8
+    }
+
+    /// Dokunulan elemanın bağlantısını çalıştırır. Sayfa silinmişse ya da geri gidecek sayfa yoksa bir şey olmaz.
+    private func perform(_ action: ElementAction) {
+        switch action {
+        case .none:
+            break
+        case .back:
+            // Dene ortadaki bir sayfadan açıldıysa geri, projenin ilk sayfasına döner
+            if history.count == 1, let first = screens.first?.id, first != history[0] {
+                history.insert(first, at: 0)
+            }
+            guard history.count > 1 else { return }
+            hideKeyboard()
+            pushEdge = .leading
+            withAnimation(.snappy(duration: 0.3)) { _ = history.removeLast() }
+        case .goTo(let screenID):
+            guard screens.contains(where: { $0.id == screenID }) else { return }
+            hideKeyboard()
+            pushEdge = .trailing
+            withAnimation(.snappy(duration: 0.3)) { history.append(screenID) }
+        }
     }
 
     private var closeButton: some View {
@@ -193,5 +241,6 @@ struct PreviewView: View {
 }
 
 #Preview {
-    PreviewView(screen: MockScreens.login(using: try! ComponentCatalog.load()), cardFrame: .zero, onClose: {})
+    let screen = MockScreens.login(using: try! ComponentCatalog.load())
+    PreviewView(screens: [screen], startID: screen.id, cardFrame: .zero, onClose: {})
 }

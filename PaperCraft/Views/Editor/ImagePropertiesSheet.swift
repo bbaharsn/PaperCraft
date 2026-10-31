@@ -39,6 +39,9 @@ struct ImagePropertiesSheet: View {
             }
         }
 
+        TapActionSection(action: viewModel.binding(\.action, default: ElementAction.none),
+                         targets: viewModel.linkTargets)
+
         SizeSection(viewModel: viewModel)
 
         Section {

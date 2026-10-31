@@ -56,17 +56,55 @@ final class Project {
         (screens ?? []).sorted { $0.order < $1.order }
     }
 
-    /// Editörün açtığı ekran (şimdilik projede tek ekran var). Kayıt yoksa ya da bozuksa boş bir ekran.
+    /// Projelerim kartında görünen ilk ekran. Kayıt yoksa ya da bozuksa boş bir ekran.
     var firstScreen: PrototypeScreen {
-        sortedScreens.first?.screen ?? PrototypeScreen(name: "Ekran 1")
+        sortedScreens.first?.screen ?? PrototypeScreen(name: "Sayfa 1")
     }
 
-    /// Editördeki değişikliği ilk ekrana yazar ve son değişiklik zamanını günceller.
-    func saveFirstScreen(_ screen: PrototypeScreen) {
-        if let record = sortedScreens.first {
-            record.update(screen)
-        } else {
-            screens?.append(ScreenRecord(screen: screen, order: 0))
+    /// Tüm sayfalar, sırasıyla; önizleme bunların kopyasıyla çalışır. Bozuk kayıt boş sayfa olur.
+    var previewScreens: [PrototypeScreen] {
+        sortedScreens.map { $0.screen ?? PrototypeScreen(name: "Sayfa") }
+    }
+
+    /// Sona boş bir sayfa ekler: "Sayfa 2", "Sayfa 3"…
+    @discardableResult
+    func addScreen() -> ScreenRecord {
+        let names = previewScreens.map(\.name)
+        var number = sortedScreens.count + 1
+        while names.contains("Sayfa \(number)") { number += 1 }
+        let record = ScreenRecord(screen: PrototypeScreen(name: "Sayfa \(number)"),
+                                  order: (sortedScreens.last?.order ?? -1) + 1)
+        screens?.append(record)
+        updatedAt = .now
+        return record
+    }
+
+    /// Editördeki değişikliği sayfanın kaydına yazar ve son değişiklik zamanını günceller.
+    func save(_ screen: PrototypeScreen, to record: ScreenRecord) {
+        record.update(screen)
+        updatedAt = .now
+    }
+
+    /// Boş ad kaydedilmez; eski ad kalır.
+    func renameScreen(_ record: ScreenRecord, to name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, var screen = record.screen else { return }
+        screen.name = trimmed
+        save(screen, to: record)
+    }
+
+    /// Sayfayı siler, ona giden buton bağlantılarını kaldırır. Son sayfa silinmez.
+    func deleteScreen(_ record: ScreenRecord, in context: ModelContext) {
+        guard sortedScreens.count > 1 else { return }
+        let deletedID = record.screen?.id
+        screens?.removeAll { $0 === record }
+        context.delete(record)
+        if let deletedID {
+            for other in sortedScreens {
+                guard var screen = other.screen else { continue }
+                screen.removeLinks(to: deletedID)
+                other.update(screen)
+            }
         }
         updatedAt = .now
     }
