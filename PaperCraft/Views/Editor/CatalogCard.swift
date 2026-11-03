@@ -33,6 +33,11 @@ struct CatalogCard: View {
             RoundedRectangle(cornerRadius: 4)
                 .stroke(Theme.ink, lineWidth: 1)
                 .frame(width: 70, height: 22)
+        case .box:
+            RoundedRectangle(cornerRadius: 8)
+                .fill(.white)
+                .stroke(Theme.ink, lineWidth: 1)
+                .frame(width: 56, height: 40)
         default:
             Image(systemName: definition.paletteSymbol)
                 .font(.system(size: 30))

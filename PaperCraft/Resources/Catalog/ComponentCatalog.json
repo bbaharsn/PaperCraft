@@ -71,6 +71,40 @@
       ]
     },
     {
+      "type": "box",
+      "displayName": "kutu",
+      "category": "Temel",
+      "paletteSymbol": "square",
+      "placement": "free",
+      "defaultSize": {
+        "width": 160,
+        "height": 120
+      },
+      "minSize": {
+        "width": 8,
+        "height": 8
+      },
+      "defaultProperties": {
+        "fillColor": "#FFFFFF",
+        "cornerRadius": 12,
+        "borderWidth": 1,
+        "borderColor": "#E5E5EA",
+        "hasShadow": false
+      },
+      "aiAliases": [
+        "box",
+        "card",
+        "container",
+        "rectangle",
+        "shape",
+        "badge",
+        "divider",
+        "kutu",
+        "kart",
+        "şekil"
+      ]
+    },
+    {
       "type": "textField",
       "displayName": "input",
       "category": "Form",

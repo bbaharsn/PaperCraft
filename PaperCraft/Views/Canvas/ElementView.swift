@@ -39,6 +39,9 @@ struct ElementView: View {
         case .symbol:
             tappable { SymbolElementView(properties: properties) }
 
+        case .box:
+            tappable { BoxElementView(properties: properties) }
+
         case .switch:
             SwitchElementView(properties: properties, interactive: interactive)
 

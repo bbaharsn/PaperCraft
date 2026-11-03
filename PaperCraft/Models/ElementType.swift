@@ -13,6 +13,8 @@ nonisolated enum ElementType: String, Codable {
     case textField
     case image
     case symbol
+    /// Düz bir dikdörtgen: kart zemini, etiket, daire. Üstüne başka elemanlar konur.
+    case box
     case `switch`
     case slider
     case navigationBar

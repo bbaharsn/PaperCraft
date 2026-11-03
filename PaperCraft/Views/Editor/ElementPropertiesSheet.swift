@@ -16,7 +16,7 @@ struct ElementPropertiesSheet: View {
     /// Özellikler sayfası olan türler. Yeni bir tür eklenince buraya ve `content`'e eklenir.
     static func hasSheet(for type: ElementType) -> Bool {
         type == .text || type == .button || type == .textField || type == .switch || type == .slider
-            || type == .navigationBar || type == .tabBar || type == .image || type == .symbol
+            || type == .navigationBar || type == .tabBar || type == .image || type == .symbol || type == .box
     }
 
     private var type: ElementType? {
@@ -54,6 +54,7 @@ struct ElementPropertiesSheet: View {
         case .tabBar: TabBarPropertiesSheet(viewModel: viewModel)
         case .image: ImagePropertiesSheet(viewModel: viewModel)
         case .symbol: SymbolPropertiesSheet(viewModel: viewModel)
+        case .box: BoxPropertiesSheet(viewModel: viewModel)
         default: EmptyView()
         }
     }
@@ -69,6 +70,7 @@ struct ElementPropertiesSheet: View {
         case .tabBar: "Alt Menü"
         case .image: "Görsel"
         case .symbol: "Sembol"
+        case .box: "Kutu"
         default: "Özellikler"
         }
     }

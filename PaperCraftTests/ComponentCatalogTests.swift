@@ -18,7 +18,7 @@ struct ComponentCatalogTests {
         let catalog = try ComponentCatalog.load()
         let grouped = catalog.categories.flatMap { catalog.components(in: $0) }
         #expect(grouped.count == catalog.components.count)
-        #expect(catalog.components(in: "Temel").map(\.type) == [.text, .button])
+        #expect(catalog.components(in: "Temel").map(\.type) == [.text, .button, .box])
     }
 
     @Test func emptyCatalogHasNoCategories() {

@@ -47,6 +47,8 @@ struct SelectionOverlay: View {
             case .capsule: return .capsule
             case .underline, .none: return .rectangle
             }
+        case .box:
+            return (element.properties.cornerRadius ?? 12) > 0 ? .rounded : .rectangle
         case .tabBar:
             return (element.properties.tabBarCorner ?? .square).buttonShape
         default:

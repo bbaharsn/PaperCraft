@@ -118,4 +118,16 @@ nonisolated struct ElementProperties: Codable, Equatable {
     var removesBackground: Bool?
     /// Döndürme açısı, derece (saat yönünde, 0..<360). Şimdilik sadece görselde döndürme tutamacı var.
     var rotation: Double?
+
+    // MARK: - Kutu görünümü
+    // Dolgu rengi `fillColor`'da durur.
+
+    /// Köşe yuvarlaklığı, point. Kısa kenarın yarısından büyükse yarısına iner (hap ya da daire).
+    var cornerRadius: Double?
+    /// Kenarlık kalınlığı, point; 0 ise kenarlık yok.
+    var borderWidth: Double?
+    /// Kenarlık rengi, hex olarak.
+    var borderColor: String?
+    /// Altında hafif bir gölge olsun mu.
+    var hasShadow: Bool?
 }
