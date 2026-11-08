@@ -71,6 +71,7 @@ struct ProjectsView: View {
         .task {
             createSampleProjectIfNeeded()
             removeUnusedImages()
+            openEditorForDebugIfNeeded()
         }
     }
 
@@ -184,6 +185,17 @@ struct ProjectsView: View {
         guard let allProjects = try? context.fetch(FetchDescriptor<Project>()),
               let usedNames = Project.uploadedImageNames(in: allProjects) else { return }
         UploadedImageStore.shared.removeUnused(keeping: usedNames)
+    }
+
+    /// `-openEditor` / `-openProperties` ile açıldıysa en son projenin ilk sayfasına gider (sadece DEBUG).
+    private func openEditorForDebugIfNeeded() {
+        guard DebugLaunchOptions.opensEditor, !DebugLaunchOptions.hasOpenedEditor else { return }
+        let newestFirst = FetchDescriptor<Project>(sortBy: [SortDescriptor(\.updatedAt, order: .reverse)])
+        guard let project = try? context.fetch(newestFirst).first,
+              let record = project.sortedScreens.first else { return }
+        DebugLaunchOptions.hasOpenedEditor = true
+        path.append(project)
+        path.append(record)
     }
 
     // MARK: - Uyarı bağlantıları

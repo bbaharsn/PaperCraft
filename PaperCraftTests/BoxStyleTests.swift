@@ -56,23 +56,14 @@ struct BoxStyleTests {
 
     /// Daire kutu geniş çerçevede ortada çizilir: yanlar boş, orta dolu.
     @Test func circleBoxRendersCenteredCircle() throws {
-        let view = BoxElementView(properties: ElementProperties(fillColor: "#25D366", frameShape: .circle, borderWidth: 0))
-            .frame(width: 200, height: 100)
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 1
-        let image = try #require(renderer.cgImage)
+        let pixels = try RenderedPixels(
+            BoxElementView(properties: ElementProperties(fillColor: "#25D366", frameShape: .circle, borderWidth: 0)),
+            width: 200, height: 100)
 
-        var pixels = [UInt8](repeating: 0, count: 200 * 100 * 4)
-        let context = try #require(CGContext(data: &pixels, width: 200, height: 100, bitsPerComponent: 8,
-                                             bytesPerRow: 800, space: CGColorSpaceCreateDeviceRGB(),
-                                             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
-        context.draw(image, in: CGRect(x: 0, y: 0, width: 200, height: 100))
-        func alpha(_ x: Int, _ y: Int) -> UInt8 { pixels[(y * 200 + x) * 4 + 3] }
-
-        #expect(alpha(100, 50) > 200)
-        #expect(alpha(20, 50) == 0)
-        #expect(alpha(180, 50) == 0)
-        #expect(alpha(52, 3) == 0)   // dairenin dışındaki kare köşesi
+        #expect(pixels.alpha(100, 50) > 200)
+        #expect(pixels.alpha(20, 50) == 0)
+        #expect(pixels.alpha(180, 50) == 0)
+        #expect(pixels.alpha(52, 3) == 0)   // dairenin dışındaki kare köşesi
     }
 
     @Test func changingBoxColorUpdatesSelectedBox() throws {

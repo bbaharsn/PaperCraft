@@ -34,6 +34,9 @@ struct EditorView: View {
 
     /// Özellikler sayfasının yarım açıkken yüksekliği (point).
     private static let propertiesSheetHeight: CGFloat = 340
+    /// Açık sayfanın boyu (yarım ya da tam). `-largeSheet` ile tam boy başlar.
+    @State private var sheetDetent: PresentationDetent =
+        DebugLaunchOptions.opensLargeSheet ? .large : .height(EditorView.propertiesSheetHeight)
 
     init(project: Project, record: ScreenRecord) {
         self.project = project
@@ -99,9 +102,9 @@ struct EditorView: View {
                 }
                 .animation(.snappy, value: viewModel.selectedElementID)
                 .animation(.snappy, value: wantsProperties)
-                .sheet(isPresented: $isEditingBackground) {
+                .sheet(isPresented: $isEditingBackground, onDismiss: resetSheetDetent) {
                     BackgroundPropertiesSheet(viewModel: viewModel)
-                        .presentationDetents([.height(Self.propertiesSheetHeight), .large])
+                        .presentationDetents([.height(Self.propertiesSheetHeight), .large], selection: $sheetDetent)
                         .presentationDragIndicator(.visible)
                         // Sayfa açıkken değişiklik canvas'ta görünsün, üstü kararmasın.
                         .presentationBackgroundInteraction(.enabled(upThrough: .height(Self.propertiesSheetHeight)))
@@ -144,13 +147,14 @@ struct EditorView: View {
         .onChange(of: viewModel.screen) { _, newScreen in
             project.save(newScreen, to: record)
         }
+        .task { await openPropertiesForDebugIfNeeded() }
         // SwiftData kendisi de ara ara kaydeder; editörden çıkarken beklemeden diske yazalım.
         .onDisappear {
             try? context.save()
         }
-        .sheet(isPresented: isShowingProperties) {
+        .sheet(isPresented: isShowingProperties, onDismiss: resetSheetDetent) {
             ElementPropertiesSheet(viewModel: viewModel)
-                .presentationDetents([.height(Self.propertiesSheetHeight), .large])
+                .presentationDetents([.height(Self.propertiesSheetHeight), .large], selection: $sheetDetent)
                 .presentationDragIndicator(.visible)
                 // Sayfa açıkken de canvas'a dokunup başka eleman seçilebilsin.
                 .presentationBackgroundInteraction(.enabled(upThrough: .height(Self.propertiesSheetHeight)))
@@ -163,6 +167,28 @@ struct EditorView: View {
                             cardFrame: canvasCardFrame,
                             onClose: { isPreviewing = false })
             }
+        }
+    }
+
+    /// Kapanan sayfa bir dahaki sefere yine yarım boy açılsın.
+    private func resetSheetDetent() {
+        sheetDetent = .height(Self.propertiesSheetHeight)
+    }
+
+    /// `-openProperties <tür>` ile açıldıysa o türdeki ilk elemanı seçip Özellikler sayfasını açar;
+    /// `-openProperties background` Arka Plan sayfasını açar (sadece DEBUG).
+    private func openPropertiesForDebugIfNeeded() async {
+        guard let target = DebugLaunchOptions.propertiesTarget, !DebugLaunchOptions.hasOpenedProperties else { return }
+        DebugLaunchOptions.hasOpenedProperties = true
+        // Editöre geçiş animasyonu bitmeden açılan sayfa gösterilmiyor.
+        try? await Task.sleep(for: .milliseconds(700))
+
+        if target == DebugLaunchOptions.background {
+            isEditingBackground = true
+        } else if let type = ElementType(rawValue: target),
+                  let element = viewModel.screen.elements.first(where: { $0.type == type }) {
+            viewModel.select(element.id)
+            wantsProperties = true
         }
     }
 
