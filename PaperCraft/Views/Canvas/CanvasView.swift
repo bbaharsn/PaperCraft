@@ -27,14 +27,44 @@ struct CanvasView: View {
     @State private var draggingID: UUID?
     @State private var dragOffset: CGSize = .zero
 
+    /// İki parmakla yakınlaştırma ve kaydırma durumu.
+    @State private var viewport = CanvasViewport()
+    /// Yakınlaştırma ya da kaydırma başladığındaki durum; hareket buna göre hesaplanır.
+    @State private var gestureStart: CanvasViewport?
+    /// İki parmak ekrandayken eleman taşınmasın.
+    @State private var isPinching = false
+
     /// Referans iPhone ekranı (point). Normalize koordinatlar buna göredir; önizleme de aynısını kullanır.
     static let referenceSize = CGSize(width: 393, height: 852)
     private let referenceSize = Self.referenceSize
 
     var body: some View {
         GeometryReader { geometry in
-            let scale = fittedScale(in: geometry.size)
+            let available = geometry.size
+            let fitted = fittedScale(in: available)
+            // Kartın alana tam sığdığı boyut; yakınlaştırma bunun katıdır.
+            let fittedCard = CGSize(width: referenceSize.width * fitted, height: referenceSize.height * fitted)
+            let scale = fitted * viewport.zoom
 
+            card(scale: scale, available: available)
+                // Büyüyen kart alanın ortasında kalır, taşan kısmı kenarlardan dışarı çıkar.
+                .frame(width: available.width, height: available.height)
+                // Büyütülmüş kart üst barın ve saatin arkasına taşmasın (editörün 16 pt kenar boşluğu dahil).
+                // Yakınlaştırma yokken kırpılmaz: seçili eleman için yukarı kayan kart üst barın altından geçer.
+                .clipShape(Rectangle().inset(by: viewport.isZoomed ? -16 : -10_000))
+                .contentShape(Rectangle())
+                // Elemanların kendi taşıma hareketi önce gelir; boş yerde sürüklemek kartı kaydırır.
+                .gesture(panGesture(cardSize: fittedCard, available: available),
+                         including: viewport.isZoomed ? .all : .subviews)
+                .simultaneousGesture(pinchGesture(cardSize: fittedCard, available: available))
+                .overlay(alignment: .topTrailing) {
+                    if viewport.isZoomed { zoomBadge }
+                }
+        }
+    }
+
+    /// Kağıt kart: elemanlar, arka plan, bant. Yakınlaştırma ve kaydırma uygulanmış halde.
+    private func card(scale: CGFloat, available: CGSize) -> some View {
             elementsLayer(scale: scale)
                 .frame(width: referenceSize.width, height: referenceSize.height)
                 // Dokunuşlar arka planın üstünde; elemana dokunmak buraya gelmez.
@@ -53,10 +83,66 @@ struct CanvasView: View {
                 .clipShape(RoundedRectangle(cornerRadius: Theme.cornerRadius))
                 .paperCard()
                 .overlay(alignment: .topLeading) { tape }
-                .offset(y: -liftForSelection(in: geometry.size, scale: scale))
+                .offset(x: viewport.pan.width,
+                        y: viewport.pan.height - liftForSelection(in: available, scale: scale))
                 .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { onCardFrameChange($0) }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Yakınlaştırılmışken sağ üstte görünen oran; dokununca kart yeniden alana sığar.
+    private var zoomBadge: some View {
+        Button {
+            withAnimation(.snappy) { viewport = CanvasViewport() }
+        } label: {
+            Label("%\(Int((viewport.zoom * 100).rounded()))", systemImage: "arrow.down.right.and.arrow.up.left")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Theme.paper)
+                .padding(.horizontal, 10)
+                .frame(height: 32)
+                .background(Theme.ink.opacity(0.85), in: Capsule())
         }
+        .buttonStyle(.plain)
+        .padding(8)
+        .accessibilityLabel("Yakınlaştırmayı sıfırla")
+    }
+
+    /// İki parmakla yakınlaştırma (Mac'te trackpad'de kıstırma).
+    private func pinchGesture(cardSize: CGSize, available: CGSize) -> some Gesture {
+        MagnifyGesture()
+            .onChanged { value in
+                if gestureStart == nil {
+                    gestureStart = viewport
+                    isPinching = true
+                    // İlk parmakla başlamış bir eleman taşıması iptal olur, eleman yerine döner.
+                    draggingID = nil
+                    dragOffset = .zero
+                }
+                guard let start = gestureStart else { return }
+                let anchor = CGPoint(x: value.startLocation.x - available.width / 2,
+                                     y: value.startLocation.y - available.height / 2)
+                viewport = .pinched(from: start, magnification: value.magnification, anchor: anchor,
+                                    cardSize: cardSize, available: available)
+            }
+            .onEnded { _ in
+                gestureStart = nil
+                isPinching = false
+                if !viewport.isZoomed {
+                    withAnimation(.snappy) { viewport = CanvasViewport() }
+                }
+            }
+    }
+
+    /// Yakınlaştırılmışken boş bir yerde sürükleyince kart kayar.
+    private func panGesture(cardSize: CGSize, available: CGSize) -> some Gesture {
+        DragGesture(minimumDistance: 10)
+            .onChanged { value in
+                guard !isPinching else { return }
+                if gestureStart == nil { gestureStart = viewport }
+                guard let start = gestureStart else { return }
+                viewport = .dragged(from: start, by: value.translation, cardSize: cardSize, available: available)
+            }
+            .onEnded { _ in
+                if !isPinching { gestureStart = nil }
+            }
     }
 
     /// Seçili elemanın alttaki sayfanın üstünde görünmesi için tuvalin ne kadar
@@ -65,8 +151,8 @@ struct CanvasView: View {
         guard bottomInset > 0, let element = viewModel.selectedElement else { return 0 }
         let margin: CGFloat = 16
 
-        // Tuval alanın ortasına yerleşiyor; elemanın ekrandaki üst ve alt kenarı
-        let cardTop = (available.height - referenceSize.height * scale) / 2
+        // Tuval alanın ortasına (kaydırıldıysa o kadar ötesine) yerleşiyor; elemanın ekrandaki üst ve alt kenarı
+        let cardTop = (available.height - referenceSize.height * scale) / 2 + viewport.pan.height
         let elementTop = cardTop + element.frame.y * referenceSize.height * scale
         let elementBottom = elementTop + element.frame.height * referenceSize.height * scale
 
@@ -134,6 +220,7 @@ struct CanvasView: View {
     private func dragGesture(for element: CanvasElement, scale: CGFloat) -> some Gesture {
         DragGesture(coordinateSpace: .global)
             .onChanged { value in
+                guard !isPinching else { return }
                 if draggingID == nil {
                     draggingID = element.id
                     viewModel.select(element.id)
@@ -142,6 +229,8 @@ struct CanvasView: View {
                                     height: value.translation.height / scale)
             }
             .onEnded { value in
+                // Yakınlaştırma yüzünden iptal edildiyse eleman yerinde kalır
+                guard draggingID == element.id else { return }
                 // Ekran point'i → normalize (0...1) dönüşümü
                 viewModel.moveElement(element.id,
                                       dx: value.translation.width / (referenceSize.width * scale),

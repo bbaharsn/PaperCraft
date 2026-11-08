@@ -55,7 +55,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
   * 10–15 gerçek el çizimi topla (bu set ileride doğruluk testi için sabit kalır).
   * Seçilen AI sağlayıcısına gönder, JSON çıktılarını incele: koordinat isabeti, tip doğruluğu, metin okuma.
   * Sonuçlara göre veri şemasını kesinleştir.
-- [ ] **Testler:** JSON encode/decode, bilinmeyen tip, eski şema sürümü için birim testleri. *(Kısmen: 122 test; bilinmeyen tip ve bilinmeyen değerlerin varsayılana düşmesi, bozuk kaydın boş ekran olarak açılması test ediliyor. Eksik: eski `schemaVersion`'lı bir kaydı açma testi — ilk şema değişikliğinde yazılacak.)*
+- [ ] **Testler:** JSON encode/decode, bilinmeyen tip, eski şema sürümü için birim testleri. *(Kısmen: 145 test; bilinmeyen tip ve bilinmeyen değerlerin varsayılana düşmesi, bozuk kaydın boş ekran olarak açılması test ediliyor. Eksik: eski `schemaVersion`'lı bir kaydı açma testi — ilk şema değişikliğinde yazılacak.)*
 
 ---
 
@@ -87,7 +87,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 - [ ] **Uygulama İskeleti:** *(Kısmen: renkler, ölçüler ve logo fontu `Theme`'de; Projelerim → Editör gezinmesi `NavigationStack` ile çalışıyor. Eksik: Phase 2 tasarım onayı, iPad için `NavigationSplitView`.)*
   * Phase 2'deki tasarım token'larını koda aktar.
   * Gezinme yapısını `NavigationSplitView` ile kur (iPhone'da otomatik olarak tek sütunlu yığına dönüşür).
-- [ ] **Canvas:** *(Kısmen: `CanvasView` mock ekranı render ediyor, normalize ↔ nokta dönüşümü var. Yakınlaştırma ve kaydırma yok.)*
+- [x] **Canvas:** *(İki parmakla %100–%400 yakınlaştırma (parmakların arasındaki nokta yerinde kalır, Mac'te trackpad'de kıstırma); yakınlaştırılmışken boş yerde tek parmakla kaydırma, kart kenarından fazla kaçmaz; sağ üstteki oran düğmesi kartı yeniden sığdırır. Elemanlar yakınlaştırılmışken de seçilir, taşınır, boyutlandırılır; iki parmak inince başlamış taşıma iptal olur.)*
   * Mock JSON'u cihaz çerçevesi içinde render eden `CanvasView`.
   * Normalize koordinat ↔ ekran noktası dönüşümü; yakınlaştırma ve kaydırma.
 - [x] **Seçim & Sürükleme:** *(Ayrıca: köşelerden boyutlandırma, görselde döndürme tutamacı (0/90/180/270°'ye yapışır), son dokunulan eleman en üste gelir.)*
@@ -97,7 +97,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
   * Seçili elemanın metnini, rengini veya ikonunu değiştiren alt panel (`.sheet` + `presentationDetents`).
   * Silme, klonlama, geri al / yinele.
   * Paletten ekleme: önce **dokunarak ekleme**, ardından sürükle-bırak.
-- [ ] **Görseller:** *(Kısmen: hazır görsel kütüphanesi — Microsoft Fluent Emoji'den 28 yiyecek-içecek görseli (MIT), renkli ya da tek renk + renk seçimi; fotoğraf yükleme (`PhotosPicker`, en fazla 2048 px PNG) ve cihazda arka plan silme (Vision, simülatörde çalışmaz); hiçbir elemanın kullanmadığı fotoğraflar açılışta siliniyor (bozuk kayıt varsa hiçbiri silinmez). Eksik: diğer kategoriler; MIT lisans metnini gösteren "Lisanslar" ekranı (yayından önce şart); iCloud açılınca temizliğin diğer cihazların fotoğraflarını silmemesi.)*
+- [ ] **Görseller:** *(Kısmen: hazır görsel kütüphanesi — Microsoft Fluent Emoji'den 28 yiyecek-içecek görseli (MIT), renkli ya da tek renk + renk seçimi; fotoğraf yükleme (`PhotosPicker`, en fazla 2048 px PNG) ve cihazda arka plan silme (Vision, simülatörde çalışmaz); hiçbir elemanın kullanmadığı fotoğraflar açılışta siliniyor (bozuk kayıt varsa hiçbiri silinmez). Projelerim'deki ⓘ ile açılan "Lisanslar" ekranı Fluent Emoji (MIT) ve logo fontu Bricolage Grotesque (OFL) metinlerini gösteriyor; yeni bir açık kaynak parça eklenince `License.all`'a da eklenmeli. Eksik: diğer kategoriler; iCloud açılınca temizliğin diğer cihazların fotoğraflarını silmemesi.)*
 - [ ] **Çoklu Ekran & Önizleme Modu:** *(Kısmen: "Dene" ile canvas kartı büyüyerek tam ekran önizlemeye dönüşür; üst bar her telefonda güvenli alanın altına, alt menü en alta oturur; switch, slider, metin kutusu ve sekmeler dokunuşa tepki verir, butonlar basınca kararır. Önizleme ekranın kopyasıyla çalışır, tasarımı değiştirmez; klavye yazılan kutuyu kapatacaksa tasarım yukarı kayar; ✕ ya da aşağı kaydırmayla kart yerine küçülerek kapanır. Projede birden fazla sayfa var: ızgarada görünür, eklenir, adlandırılır, silinir; buton, görsel, sembol, üst bar sağ butonu ve alt menü sekmelerinin "Dokununca" bölümünden sayfaya gitme ve geri dönme bağlanır, Dene'de sayfalar yandan kayarak geçer. üst barın geri oku da önceki sayfaya döner. Eksik: metin elemanına bağlantı.)*
   * Ekran ekleme/silme, elemanlara "şu ekrana git" aksiyonu bağlama.
   * Editör çizgilerinin gizlendiği canlı prototip modu.

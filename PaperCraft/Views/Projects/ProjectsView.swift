@@ -20,6 +20,8 @@ struct ProjectsView: View {
     @State private var newName = ""
     /// Silinmesi onay bekleyen proje.
     @State private var deletingProject: Project?
+    /// ⓘ ile açılan Lisanslar sayfası
+    @State private var isShowingLicenses = false
 
     /// Örnek proje bir kez oluşturulur; kullanıcı silerse geri gelmez.
     @AppStorage("hasCreatedSampleProject") private var hasCreatedSampleProject = false
@@ -63,6 +65,9 @@ struct ProjectsView: View {
         } message: {
             Text("\"\(deletingProject?.name ?? "")\" ve tüm ekranları silinir. Bu geri alınamaz.")
         }
+        .sheet(isPresented: $isShowingLicenses) {
+            LicensesView()
+        }
         .task {
             createSampleProjectIfNeeded()
             removeUnusedImages()
@@ -79,6 +84,14 @@ struct ProjectsView: View {
                  + Text(".").foregroundStyle(Theme.accent))
                     .font(Theme.logoFont(size: 24))
                 Spacer()
+                Button { isShowingLicenses = true } label: {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 20))
+                        .foregroundStyle(Theme.ink)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Lisanslar")
                 Button(action: createProject) {
                     Label("Yeni proje", systemImage: "plus")
                         .font(.system(size: 16, weight: .semibold))
