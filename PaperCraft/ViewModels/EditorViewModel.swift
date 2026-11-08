@@ -22,6 +22,9 @@ final class EditorViewModel {
         didSet { recordUndo(from: oldValue) }
     }
     var selectedElementID: UUID?
+    /// Canvas'ta görünen alanın üst kenarı, ekran yüksekliği birimiyle (sayfa ne kadar aşağı kaydırıldı).
+    /// Katalogdan eklenen eleman bu alana gelir. Görünüm durumudur; kaydedilmez, geri al'a girmez.
+    @ObservationIgnored var visibleTop: Double = 0
 
     // MARK: Geri al / Yinele durumu
 
@@ -114,7 +117,7 @@ final class EditorViewModel {
     /// Tür katalogda yoksa hiçbir şey yapmaz.
     func addElement(of type: ElementType) {
         guard let element = catalog.makeElement(of: type) else { return }
-        screen.elements.append(element)   // sona eklenen en üstte çizilir
+        screen.elements.append(placedInVisibleArea(element))   // sona eklenen en üstte çizilir
         selectedElementID = element.id
     }
 
@@ -122,8 +125,17 @@ final class EditorViewModel {
     func addSymbol(named name: String) {
         guard var element = catalog.makeElement(of: .symbol) else { return }
         element.properties.symbolName = name
-        screen.elements.append(element)   // sona eklenen en üstte çizilir
+        screen.elements.append(placedInVisibleArea(element))   // sona eklenen en üstte çizilir
         selectedElementID = element.id
+    }
+
+    /// Serbest yerleşen eleman, sayfa kaydırılmışsa o an görünen alana taşınır.
+    /// En üste / en alta yapışan barlar katalogdaki yerinde kalır.
+    private func placedInVisibleArea(_ element: CanvasElement) -> CanvasElement {
+        guard (catalog.definition(for: element.type)?.placement ?? .free) == .free else { return element }
+        var element = element
+        element.frame.y += visibleTop
+        return element
     }
 
     /// Seçili elemanı siler ve seçimi kaldırır. Seçili eleman yoksa hiçbir şey yapmaz.
@@ -141,13 +153,13 @@ final class EditorViewModel {
     }
 
     /// Seçili elemanın kopyasını 16 pt sağa-aşağı kaydırarak ekler ve kopyayı seçer.
-    /// Kopya ekrandan taşmaz; çoğaltılamayan elemanlarda hiçbir şey yapmaz.
+    /// Kopya yandan taşmaz, aşağıda sayfa uzar; çoğaltılamayan elemanlarda hiçbir şey yapmaz.
     func duplicateSelectedElement() {
         guard canDuplicateSelected, var copy = selectedElement else { return }
         let offset: Double = 16
         copy.id = UUID()
         copy.frame.x = min(copy.frame.x + offset / canvasSize.width, 1 - copy.frame.width)
-        copy.frame.y = min(copy.frame.y + offset / canvasSize.height, 1 - copy.frame.height)
+        copy.frame.y += offset / canvasSize.height
         screen.elements.append(copy)   // sona eklenen en üstte çizilir
         selectedElementID = copy.id
     }
@@ -159,13 +171,17 @@ final class EditorViewModel {
         change(&screen.elements[index].properties)
     }
 
-    /// Elemanı normalize miktarda (0...1) kaydırır; ekranın dışına taşmasını engeller.
+    /// Elemanı normalize miktarda kaydırır. Yanlardan ve yukarıdan taşmaz; aşağıda sayfa uzar.
+    /// Sabit üst bar ve alt menü ekranın görünen kısmında (0...1) kalır.
     func moveElement(_ id: UUID, dx: Double, dy: Double) {
         guard let index = screen.elements.firstIndex(where: { $0.id == id }) else { return }
 
         var frame = screen.elements[index].frame
         frame.x = min(max(frame.x + dx, 0), 1 - frame.width)
-        frame.y = min(max(frame.y + dy, 0), 1 - frame.height)
+        frame.y = max(frame.y + dy, 0)
+        if screen.elements[index].isPinned {
+            frame.y = min(frame.y, 1 - frame.height)
+        }
         screen.elements[index].frame = frame
     }
 
@@ -208,7 +224,7 @@ final class EditorViewModel {
         if corner.isTop {
             top = min(max(top + delta.height, 0), bottom - minSize.height)
         } else {
-            bottom = max(min(bottom + delta.height, canvasSize.height), top + minSize.height)
+            bottom = max(min(bottom + delta.height, bottomLimit(for: element)), top + minSize.height)
         }
 
         var newRect = CGRect(x: left, y: top, width: right - left, height: bottom - top)
@@ -229,11 +245,11 @@ final class EditorViewModel {
         let minSize = minimumSize(of: element)
 
         var newWidth = min(max(width, minSize.width), canvasSize.width - rect.minX)
-        var newHeight = min(max(height, minSize.height), canvasSize.height - rect.minY)
+        var newHeight = min(max(height, minSize.height), bottomLimit(for: element) - rect.minY)
         if isCircleButton(element) {
             // Hangisi değiştiyse onu esas al, diğerini ona eşitle.
             let side = newWidth != rect.width ? newWidth : newHeight
-            newWidth = min(side, canvasSize.width - rect.minX, canvasSize.height - rect.minY)
+            newWidth = min(side, canvasSize.width - rect.minX, bottomLimit(for: element) - rect.minY)
             newHeight = newWidth
         }
         setPointRect(CGRect(x: rect.minX, y: rect.minY, width: newWidth, height: newHeight), at: index)
@@ -396,6 +412,11 @@ final class EditorViewModel {
         setPointRect(rect, at: index)
     }
 
+    /// Elemanın alt kenarının inebileceği en aşağı nokta (point): sabit barda ekranın altı, diğerlerinde sınır yok.
+    private func bottomLimit(for element: CanvasElement) -> CGFloat {
+        element.isPinned ? canvasSize.height : .greatestFiniteMagnitude
+    }
+
     private func setPointRect(_ rect: CGRect, at index: Int) {
         screen.elements[index].frame = NormalizedFrame(x: rect.minX / canvasSize.width,
                                                        y: rect.minY / canvasSize.height,
@@ -441,7 +462,8 @@ final class EditorViewModel {
     /// Kenar uzun olana göre seçilir ama ekrandan taşmayacak kadar kısaltılır.
     private func squared(_ rect: CGRect, anchoredOppositeOf corner: ResizeCorner) -> CGRect {
         let availableWidth = corner.isLeading ? rect.maxX : canvasSize.width - rect.minX
-        let availableHeight = corner.isTop ? rect.maxY : canvasSize.height - rect.minY
+        // Daire buton serbest bir eleman; aşağıda sayfa uzadığı için alttan sınır yok.
+        let availableHeight = corner.isTop ? rect.maxY : .greatestFiniteMagnitude
         let side = min(max(rect.width, rect.height), availableWidth, availableHeight)
 
         let x = corner.isLeading ? rect.maxX - side : rect.minX

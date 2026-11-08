@@ -34,6 +34,20 @@ struct CanvasView: View {
     /// İki parmak ekrandayken eleman taşınmasın.
     @State private var isPinching = false
 
+    /// Kartın ve canvas alanının ekrandaki yeri; sürüklenen eleman kenara gelince sayfayı kaydırmak için.
+    @State private var cardFrame: CGRect = .zero
+    @State private var areaFrame: CGRect = .zero
+    /// Sürükleme sırasında kenarda otomatik kaydırmanın hızı (tuval point'i / adım); 0 ise durur.
+    @State private var edgeScrollSpeed: CGFloat = 0
+    /// Bu sürüklemede otomatik kaydırmayla kat edilen yol (tuval point'i); eleman bu kadar daha kayar.
+    @State private var edgeScrolled: CGFloat = 0
+    @State private var edgeScrollTask: Task<Void, Never>?
+
+    /// Kartın üst/alt kenarından bu kadar içeride (ekran point'i) parmak sayfayı kaydırmaya başlar.
+    private static let edgeBand: CGFloat = 48
+    /// En hızlı otomatik kaydırma, adım başına (tuval point'i; saniyede ~60 adım).
+    private static let maxEdgeSpeed: CGFloat = 12
+
     /// Referans iPhone ekranı (point). Normalize koordinatlar buna göredir; önizleme de aynısını kullanır.
     static let referenceSize = CGSize(width: 393, height: 852)
     private let referenceSize = Self.referenceSize
@@ -46,35 +60,64 @@ struct CanvasView: View {
             let fittedCard = CGSize(width: referenceSize.width * fitted, height: referenceSize.height * fitted)
             let scale = fitted * viewport.zoom
 
-            card(scale: scale, available: available)
+            card(scale: scale)
                 // Büyüyen kart alanın ortasında kalır, taşan kısmı kenarlardan dışarı çıkar.
                 .frame(width: available.width, height: available.height)
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { areaFrame = $0 }
                 // Büyütülmüş kart üst barın ve saatin arkasına taşmasın (editörün 16 pt kenar boşluğu dahil).
-                // Yakınlaştırma yokken kırpılmaz: seçili eleman için yukarı kayan kart üst barın altından geçer.
-                .clipShape(Rectangle().inset(by: viewport.isZoomed ? -16 : -10_000))
+                .clipShape(Rectangle().inset(by: -16))
                 .contentShape(Rectangle())
-                // Elemanların kendi taşıma hareketi önce gelir; boş yerde sürüklemek kartı kaydırır.
-                .gesture(panGesture(cardSize: fittedCard, available: available),
-                         including: viewport.isZoomed ? .all : .subviews)
+                // Elemanların kendi taşıma hareketi önce gelir; boş yerde sürüklemek sayfayı (büyütülmüşse önce kartı) kaydırır.
+                .gesture(panGesture(cardSize: fittedCard, available: available, scale: scale))
                 .simultaneousGesture(pinchGesture(cardSize: fittedCard, available: available))
                 .overlay(alignment: .topTrailing) {
                     if viewport.isZoomed { zoomBadge }
                 }
+                // Özellikler sayfası açılınca ya da başka eleman seçilince, seçili eleman sayfanın altında kalmasın.
+                .onChange(of: bottomInset) { revealSelection(in: available, scale: scale) }
+                .onChange(of: viewModel.selectedElementID) { revealSelection(in: available, scale: scale) }
+        }
+        // Katalogdan eklenen eleman o an görünen alana gelsin
+        .onChange(of: viewport.scroll, initial: true) { _, scroll in
+            viewModel.visibleTop = scroll / referenceSize.height
+        }
+        // Eleman silinince sayfa kısalır; kaydırma yeni sınırın dışında kalmasın
+        .onChange(of: contentHeight) { _, height in
+            let limit = CanvasViewport.maxScroll(contentHeight: height)
+            if viewport.scroll > limit {
+                withAnimation(.snappy) { viewport.scroll = limit }
+            }
         }
     }
 
-    /// Kağıt kart: elemanlar, arka plan, bant. Yakınlaştırma ve kaydırma uygulanmış halde.
-    private func card(scale: CGFloat, available: CGSize) -> some View {
-            elementsLayer(scale: scale)
+    /// Sayfanın gerçek uzunluğu (ekran yüksekliği birimi).
+    private var contentHeight: Double { viewModel.screen.contentHeight }
+
+    /// Kağıt kart: kayan sayfa (arka plan, elemanlar, sayfa sonu) ve üstünde sabit barlar.
+    /// Yakınlaştırma ve kaydırma uygulanmış halde.
+    private func card(scale: CGFloat) -> some View {
+        // Kaydırılabilecek en alt noktaya kadar çizilir: sayfa + bir boş ekran.
+        let scrollableHeight = CGFloat(contentHeight + 1) * referenceSize.height
+
+        return ZStack(alignment: .topLeading) {
+            ZStack(alignment: .topLeading) {
+                backgroundLayer(height: scrollableHeight)
+                elementsLayer(scale: scale, pinned: false)
+                    .frame(width: referenceSize.width, height: scrollableHeight)
+                if contentHeight > 1 {
+                    PageEndLine(scale: scale)
+                        .frame(width: referenceSize.width)
+                        .offset(y: CGFloat(contentHeight) * referenceSize.height)
+                }
+            }
+            .frame(width: referenceSize.width, height: scrollableHeight, alignment: .topLeading)
+            .offset(y: -viewport.scroll)
+
+            // Sabit üst bar ve alt menü kaymaz; içerik altından geçer.
+            elementsLayer(scale: scale, pinned: true)
                 .frame(width: referenceSize.width, height: referenceSize.height)
-                // Dokunuşlar arka planın üstünde; elemana dokunmak buraya gelmez.
-                .background(
-                    ScreenBackgroundView(background: viewModel.screen.background)
-                        .contentShape(Rectangle())
-                        .onTapGesture(count: 2) { onBackgroundDoubleTap() }
-                        // Tek dokunuş beklemeden hemen seçimi kaldırsın diye çift dokunuşla aynı anda dinlenir.
-                        .simultaneousGesture(TapGesture().onEnded { viewModel.select(nil) })
-                )
+        }
+        .frame(width: referenceSize.width, height: referenceSize.height, alignment: .topLeading)
                 // Gerçek boyutta çizilen tuvali ekrana sığacak kadar küçült
                 .scaleEffect(scale, anchor: .topLeading)
                 .frame(width: referenceSize.width * scale,
@@ -83,15 +126,44 @@ struct CanvasView: View {
                 .clipShape(RoundedRectangle(cornerRadius: Theme.cornerRadius))
                 .paperCard()
                 .overlay(alignment: .topLeading) { tape }
-                .offset(x: viewport.pan.width,
-                        y: viewport.pan.height - liftForSelection(in: available, scale: scale))
-                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { onCardFrameChange($0) }
+                .offset(x: viewport.pan.width, y: viewport.pan.height)
+                .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
+                    cardFrame = frame
+                    onCardFrameChange(frame)
+                }
     }
 
-    /// Yakınlaştırılmışken sağ üstte görünen oran; dokununca kart yeniden alana sığar.
+    /// Sayfanın arka planı ve boş yere dokunma alanı. Geçiş sayfanın gerçek uzunluğu boyunca yayılır (Dene'deki gibi);
+    /// altındaki boşlukta geçişin en alt satırı aşağı uzatılır, böylece her yönde kesintisiz devam eder.
+    private func backgroundLayer(height: CGFloat) -> some View {
+        let background = ScreenBackgroundView(background: viewModel.screen.background)
+        let gradientHeight = CGFloat(contentHeight) * referenceSize.height
+        let extra = max(height - gradientHeight, 1)
+
+        return VStack(spacing: 0) {
+            background.frame(height: gradientHeight)
+            Color.clear
+                .frame(height: extra)
+                .overlay(alignment: .top) {
+                    background
+                        .frame(height: gradientHeight)
+                        .frame(height: 1, alignment: .bottom)
+                        .clipped()
+                        .scaleEffect(x: 1, y: extra, anchor: .top)
+                }
+        }
+        .frame(width: referenceSize.width, height: height)
+        // Dokunuşlar arka planın üstünde; elemana dokunmak buraya gelmez.
+        .contentShape(Rectangle())
+        .onTapGesture(count: 2) { onBackgroundDoubleTap() }
+        // Tek dokunuş beklemeden hemen seçimi kaldırsın diye çift dokunuşla aynı anda dinlenir.
+        .simultaneousGesture(TapGesture().onEnded { viewModel.select(nil) })
+    }
+
+    /// Yakınlaştırılmışken sağ üstte görünen oran; dokununca kart yeniden alana sığar (kaydırma yerinde kalır).
     private var zoomBadge: some View {
         Button {
-            withAnimation(.snappy) { viewport = CanvasViewport() }
+            withAnimation(.snappy) { viewport = CanvasViewport(scroll: viewport.scroll) }
         } label: {
             Label("%\(Int((viewport.zoom * 100).rounded()))", systemImage: "arrow.down.right.and.arrow.up.left")
                 .font(.system(size: 13, weight: .semibold))
@@ -126,46 +198,53 @@ struct CanvasView: View {
                 gestureStart = nil
                 isPinching = false
                 if !viewport.isZoomed {
-                    withAnimation(.snappy) { viewport = CanvasViewport() }
+                    withAnimation(.snappy) { viewport = CanvasViewport(scroll: viewport.scroll) }
                 }
             }
     }
 
-    /// Yakınlaştırılmışken boş bir yerde sürükleyince kart kayar.
-    private func panGesture(cardSize: CGSize, available: CGSize) -> some Gesture {
+    /// Boş bir yerde sürükleyince sayfa kayar; büyütülmüşse önce kart kendi sınırına kadar kayar.
+    private func panGesture(cardSize: CGSize, available: CGSize, scale: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 10)
             .onChanged { value in
                 guard !isPinching else { return }
                 if gestureStart == nil { gestureStart = viewport }
                 guard let start = gestureStart else { return }
-                viewport = .dragged(from: start, by: value.translation, cardSize: cardSize, available: available)
+                viewport = .dragged(from: start, by: value.translation, cardSize: cardSize, available: available,
+                                    scale: scale, contentHeight: contentHeight)
             }
             .onEnded { _ in
                 if !isPinching { gestureStart = nil }
             }
     }
 
-    /// Seçili elemanın alttaki sayfanın üstünde görünmesi için tuvalin ne kadar
-    /// yukarı kayması gerektiği (ekran point'i). Eleman zaten görünüyorsa 0.
-    private func liftForSelection(in available: CGSize, scale: CGFloat) -> CGFloat {
-        guard bottomInset > 0, let element = viewModel.selectedElement else { return 0 }
+    /// Seçili eleman alttaki sayfanın (Özellikler) altında kalacaksa sayfayı o eleman görünene kadar kaydırır.
+    /// Kart yerinden oynamaz; böylece içerik üst barın arkasına kaymaz. Sabit barlar için bir şey yapılmaz.
+    private func revealSelection(in available: CGSize, scale: CGFloat) {
+        guard bottomInset > 0, let element = viewModel.selectedElement, !element.isPinned else { return }
         let margin: CGFloat = 16
 
-        // Tuval alanın ortasına (kaydırıldıysa o kadar ötesine) yerleşiyor; elemanın ekrandaki üst ve alt kenarı
+        // Kart alanın ortasında (büyütülüp kaydırıldıysa o kadar ötesinde); elemanın ekrandaki üst ve alt kenarı
         let cardTop = (available.height - referenceSize.height * scale) / 2 + viewport.pan.height
-        let elementTop = cardTop + element.frame.y * referenceSize.height * scale
+        let elementTop = cardTop + (element.frame.y * referenceSize.height - viewport.scroll) * scale
         let elementBottom = elementTop + element.frame.height * referenceSize.height * scale
 
-        let visibleBottom = available.height - bottomInset - margin
-        let needed = elementBottom - visibleBottom
-        // Eleman çok uzunsa üst kenarı ekrandan çıkacak kadar kaydırma
-        return max(0, min(needed, elementTop - margin))
+        let needed = elementBottom - (available.height - bottomInset - margin)
+        // Eleman çok uzunsa üst kenarı kartın üstünden çıkacak kadar kaydırma
+        let shift = min(needed, elementTop - max(cardTop, 0) - margin)
+        guard shift > 0 else { return }
+        let limit = CanvasViewport.maxScroll(contentHeight: contentHeight)
+        withAnimation(.snappy) {
+            viewport.scroll = min(viewport.scroll + shift / scale, limit)
+        }
     }
 
-    /// Tüm elemanlar, gerçek iPhone point'leriyle yerleştirilmiş halde.
-    private func elementsLayer(scale: CGFloat) -> some View {
-        ZStack {
-            ForEach(Array(viewModel.screen.elements.enumerated()), id: \.element.id) { index, element in
+    /// Elemanlar, gerçek iPhone point'leriyle yerleştirilmiş halde. `pinned` true ise sadece sabit barlar
+    /// (kaymayan katman), false ise geri kalanlar (kayan sayfa). Sıra dizideki sıradır.
+    private func elementsLayer(scale: CGFloat, pinned: Bool) -> some View {
+        let layerElements = viewModel.screen.elements.enumerated().filter { $0.element.isPinned == pinned }
+        return ZStack {
+            ForEach(layerElements, id: \.element.id) { index, element in
                 let frame = element.frame
                 let isSelected = element.id == viewModel.selectedElementID
 
@@ -196,7 +275,9 @@ struct CanvasView: View {
                     }
                     // Seçim çizgisi de elemanla birlikte döner
                     .rotationEffect(.degrees(element.properties.rotation ?? 0))
-                    .offset(element.id == draggingID ? dragOffset : .zero)
+                    .offset(element.id == draggingID
+                            ? CGSize(width: dragOffset.width, height: dragOffset.height + edgeScrolled)
+                            : .zero)
                     .position(x: (frame.x + frame.width / 2) * referenceSize.width,
                               y: (frame.y + frame.height / 2) * referenceSize.height)
                     // ZStack sıra değişince çizim sırasını her zaman güncellemiyor; dizideki sırayı açıkça veriyoruz.
@@ -227,17 +308,56 @@ struct CanvasView: View {
                 }
                 dragOffset = CGSize(width: value.translation.width / scale,
                                     height: value.translation.height / scale)
+                if !element.isPinned {
+                    updateEdgeScroll(fingerY: value.location.y)
+                }
             }
             .onEnded { value in
+                stopEdgeScroll()
                 // Yakınlaştırma yüzünden iptal edildiyse eleman yerinde kalır
                 guard draggingID == element.id else { return }
-                // Ekran point'i → normalize (0...1) dönüşümü
+                // Ekran point'i → normalize dönüşümü; kenarda kendiliğinden kayılan yol da eklenir
                 viewModel.moveElement(element.id,
                                       dx: value.translation.width / (referenceSize.width * scale),
-                                      dy: value.translation.height / (referenceSize.height * scale))
+                                      dy: (value.translation.height / scale + edgeScrolled) / referenceSize.height)
                 draggingID = nil
                 dragOffset = .zero
+                edgeScrolled = 0
             }
+    }
+
+    /// Parmak kartın görünen kısmının alt/üst kenarına yaklaştıysa sayfayı o yöne kaydırmaya başlar,
+    /// uzaklaştıysa durdurur. Hız, kenara ne kadar girildiğiyle artar.
+    private func updateEdgeScroll(fingerY: CGFloat) {
+        let visible = cardFrame.intersection(areaFrame)
+        guard !visible.isNull else { return }
+        let band = Self.edgeBand
+        var speed: CGFloat = 0
+        if fingerY > visible.maxY - band {
+            speed = min((fingerY - (visible.maxY - band)) / band, 1) * Self.maxEdgeSpeed
+        } else if fingerY < visible.minY + band {
+            speed = -min(((visible.minY + band) - fingerY) / band, 1) * Self.maxEdgeSpeed
+        }
+        edgeScrollSpeed = speed
+        guard speed != 0, edgeScrollTask == nil else { return }
+
+        edgeScrollTask = Task { @MainActor in
+            while !Task.isCancelled, edgeScrollSpeed != 0 {
+                let limit = CanvasViewport.maxScroll(contentHeight: contentHeight)
+                let newScroll = min(max(viewport.scroll + edgeScrollSpeed, 0), limit)
+                // Sayfa ne kadar kaydıysa eleman da o kadar kayar; parmağın altında kalır
+                edgeScrolled += newScroll - viewport.scroll
+                viewport.scroll = newScroll
+                try? await Task.sleep(for: .milliseconds(16))
+            }
+            edgeScrollTask = nil
+        }
+    }
+
+    private func stopEdgeScroll() {
+        edgeScrollSpeed = 0
+        edgeScrollTask?.cancel()
+        edgeScrollTask = nil
     }
 
     /// Referans tuvalin verilen alana sığması için gereken küçültme oranı.

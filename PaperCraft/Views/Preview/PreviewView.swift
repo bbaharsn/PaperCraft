@@ -27,6 +27,11 @@ struct PreviewView: View {
     @State private var keyboardHeight: CGFloat = 0
     /// Yazı yazılan metin kutusu.
     @FocusState private var focusedElementID: UUID?
+    /// Uzun sayfa en üstte mi? Aşağı çekip kapatma sadece en üstteyken çalışır.
+    @State private var isScrolledToTop = true
+
+    /// Uzun sayfanın kaydırma alanının adı; en üstte olup olmadığı buna göre ölçülür.
+    private static let scrollSpace = "previewScroll"
 
     /// Bu kadar aşağı kaydırılınca önizleme kapanır.
     private static let dismissDistance: CGFloat = 140
@@ -106,16 +111,20 @@ struct PreviewView: View {
         let lift = focusedFrame.map { layout.keyboardLift(for: $0, keyboardHeight: keyboardHeight) } ?? 0
         return ZStack(alignment: .topLeading) {
             ZStack(alignment: .topLeading) {
-                ScreenBackgroundView(background: screen.background)
-                    // Boş yere dokununca klavye kapansın
-                    .onTapGesture { hideKeyboard() }
+                if screen.contentHeight > 1 {
+                    scrollingPage(layout)
+                } else {
+                    ScreenBackgroundView(background: screen.background)
+                        // Boş yere dokununca klavye kapansın
+                        .onTapGesture { hideKeyboard() }
 
-                elementsLayer(layout)
-                    .frame(width: size.width, height: layout.designHeight)
-                    .scaleEffect(layout.scale, anchor: .topLeading)
-                    // Klavye yazılan kutuyu kapatacaksa tasarım yukarı kayar
-                    .offset(y: layout.topInset - lift)
-                    .animation(.snappy(duration: 0.25), value: lift)
+                    elementsLayer(layout, screen.elements, scrolling: false)
+                        .frame(width: size.width, height: layout.designHeight)
+                        .scaleEffect(layout.scale, anchor: .topLeading)
+                        // Klavye yazılan kutuyu kapatacaksa tasarım yukarı kayar
+                        .offset(y: layout.topInset - lift)
+                        .animation(.snappy(duration: 0.25), value: lift)
+                }
 
                 // Üst bar, gerçek uygulamadaki gibi durum çubuğunun arkasına da uzanır;
                 // tasarım yukarı kayınca elemanlar bunun altından geçer
@@ -126,6 +135,42 @@ struct PreviewView: View {
             .transition(.push(from: pushEdge))
         }
         .frame(width: layout.stageSize.width, height: layout.stageSize.height, alignment: .topLeading)
+    }
+
+    /// Uzun sayfa: içerik canvas'taki gibi birebir konumlarda aşağı kayar; sabit üst bar ve alt menü
+    /// kaymaz, durum çubuğunun altında ve en altta durur. Uzun sayfada klavye tasarımı kaldırmaz.
+    private func scrollingPage(_ layout: PreviewLayout) -> some View {
+        let size = CanvasView.referenceSize
+        let contentHeight = layout.scrollingContentHeight(for: screen)
+        let pinned = screen.elements.filter(\.isPinned)
+        let scrolling = screen.elements.filter { !$0.isPinned }
+
+        return ZStack(alignment: .topLeading) {
+            ScrollView(.vertical) {
+                ZStack(alignment: .topLeading) {
+                    ScreenBackgroundView(background: screen.background)
+                        .onTapGesture { hideKeyboard() }
+                    elementsLayer(layout, scrolling, scrolling: true)
+                }
+                .frame(width: size.width, height: contentHeight)
+                .scaleEffect(layout.scale, anchor: .topLeading)
+                .frame(width: layout.stageSize.width, height: contentHeight * layout.scale, alignment: .topLeading)
+                .onGeometryChange(for: Bool.self) { proxy in
+                    proxy.frame(in: .named(Self.scrollSpace)).minY >= layout.topInset - 1
+                } action: { isScrolledToTop = $0 }
+            }
+            .coordinateSpace(name: Self.scrollSpace)
+            // İlk ekranın üstü durum çubuğunun altında başlar; kaydırınca içerik onun arkasından geçer
+            .contentMargins(.top, layout.topInset, for: .scrollContent)
+            .scrollIndicators(.hidden)
+            // Yukarı-aşağı esneme sırasında arkası boş görünmesin
+            .background(ScreenBackgroundView(background: screen.background))
+
+            elementsLayer(layout, pinned, scrolling: false)
+                .frame(width: size.width, height: layout.designHeight)
+                .scaleEffect(layout.scale, anchor: .topLeading)
+                .offset(y: layout.topInset)
+        }
     }
 
     /// Ekranda üst bar varsa durum çubuğunun arkası onun rengini alır.
@@ -144,17 +189,18 @@ struct PreviewView: View {
         }
     }
 
-    /// Tüm elemanlar, gerçek iPhone point'leriyle yerleştirilmiş ve dokunulabilir halde.
-    private func elementsLayer(_ layout: PreviewLayout) -> some View {
+    /// Verilen elemanlar, gerçek iPhone point'leriyle yerleştirilmiş ve dokunulabilir halde.
+    /// `scrolling` true ise kayan sayfanın birebir konumları, değilse durum çubuğunun altına yayılan konumlar.
+    private func elementsLayer(_ layout: PreviewLayout, _ elements: [CanvasElement], scrolling: Bool) -> some View {
         let size = CanvasView.referenceSize
         return ZStack {
-            ForEach(Array(screen.elements.enumerated()), id: \.element.id) { index, element in
+            ForEach(Array(elements.enumerated()), id: \.element.id) { index, element in
                 let frame = element.frame
                 ElementView(element: element, interactive: binding(for: element), onAction: perform)
                     .focused($focusedElementID, equals: element.id)
                     .frame(width: frame.width * size.width, height: frame.height * size.height)
                     .rotationEffect(.degrees(element.properties.rotation ?? 0))
-                    .position(layout.center(of: frame))
+                    .position(scrolling ? layout.scrollingCenter(of: frame) : layout.center(of: frame))
                     .zIndex(Double(index))
             }
         }
@@ -219,6 +265,8 @@ struct PreviewView: View {
     private var dismissGesture: some Gesture {
         DragGesture(minimumDistance: 20)
             .onChanged { value in
+                // Uzun sayfa aşağıdayken aşağı çekmek sayfayı kaydırır, önizlemeyi kapatmaz
+                guard isScrolledToTop || dismissOffset > 0 else { return }
                 let isVertical = value.translation.height > abs(value.translation.width) * 2
                 dismissOffset = isVertical ? max(0, value.translation.height) : 0
             }

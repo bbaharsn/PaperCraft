@@ -55,6 +55,8 @@ nonisolated struct ElementProperties: Codable, Equatable {
     var showsDivider: Bool?
     /// Bar uzatılınca başlığın dikey yeri; yatay yeri `textAlignment`'ta durur.
     var verticalAlignment: VerticalAlign?
+    /// Sayfa kayarken bar (üst bar ya da alt menü) yerinde mi dursun, içerikle mi kaysın. Boşsa sabit.
+    var scrollBehavior: ScrollBehavior?
 
     // MARK: - Ortak görünüm (buton, metin kutusu, anahtar, metin, üst bar)
 

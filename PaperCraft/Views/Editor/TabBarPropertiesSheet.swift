@@ -35,6 +35,8 @@ struct TabBarPropertiesSheet: View {
 
         SizeSection(viewModel: viewModel)
 
+        ScrollBehaviorSection(viewModel: viewModel)
+
         Section {
             ForEach(items.indices, id: \.self) { index in
                 NavigationLink {

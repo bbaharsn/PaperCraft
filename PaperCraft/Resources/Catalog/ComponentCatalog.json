@@ -214,6 +214,7 @@
         "height": 44
       },
       "defaultProperties": {
+        "scrollBehavior": "fixed",
         "text": "Title",
         "titleDisplayMode": "inline",
         "showsBackButton": false,
@@ -255,6 +256,7 @@
         "height": 49
       },
       "defaultProperties": {
+        "scrollBehavior": "fixed",
         "selectedIndex": 0,
         "items": [
           {

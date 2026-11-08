@@ -55,7 +55,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
   * 10–15 gerçek el çizimi topla (bu set ileride doğruluk testi için sabit kalır).
   * Seçilen AI sağlayıcısına gönder, JSON çıktılarını incele: koordinat isabeti, tip doğruluğu, metin okuma.
   * Sonuçlara göre veri şemasını kesinleştir.
-- [ ] **Testler:** JSON encode/decode, bilinmeyen tip, eski şema sürümü için birim testleri. *(Kısmen: 160 test; bilinmeyen tip ve bilinmeyen değerlerin varsayılana düşmesi, bozuk kaydın boş ekran olarak açılması test ediliyor. Eksik: eski `schemaVersion`'lı bir kaydı açma testi — ilk şema değişikliğinde yazılacak.)*
+- [ ] **Testler:** JSON encode/decode, bilinmeyen tip, eski şema sürümü için birim testleri. *(Kısmen: 184 test; bilinmeyen tip ve bilinmeyen değerlerin varsayılana düşmesi, bozuk kaydın boş ekran olarak açılması test ediliyor. Eksik: eski `schemaVersion`'lı bir kaydı açma testi — ilk şema değişikliğinde yazılacak.)*
 
 ---
 
@@ -87,7 +87,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 - [ ] **Uygulama İskeleti:** *(Kısmen: renkler, ölçüler ve logo fontu `Theme`'de; Projelerim → Editör gezinmesi `NavigationStack` ile çalışıyor. Eksik: Phase 2 tasarım onayı, iPad için `NavigationSplitView`.)*
   * Phase 2'deki tasarım token'larını koda aktar.
   * Gezinme yapısını `NavigationSplitView` ile kur (iPhone'da otomatik olarak tek sütunlu yığına dönüşür).
-- [x] **Canvas:** *(İki parmakla %100–%400 yakınlaştırma (parmakların arasındaki nokta yerinde kalır, Mac'te trackpad'de kıstırma); yakınlaştırılmışken boş yerde tek parmakla kaydırma, kart kenarından fazla kaçmaz; sağ üstteki oran düğmesi kartı yeniden sığdırır. Elemanlar yakınlaştırılmışken de seçilir, taşınır, boyutlandırılır; iki parmak inince başlamış taşıma iptal olur.)*
+- [x] **Canvas:** *(Sayfa dikey kayar (bkz. Kayan sayfa); Özellikler sayfası açılınca kart kaldırılmaz, içerik kaydırılır — yazıların üst barın arkasına binmesi düzeldi. İki parmakla %100–%400 yakınlaştırma (parmakların arasındaki nokta yerinde kalır, Mac'te trackpad'de kıstırma); yakınlaştırılmışken boş yerde tek parmakla kaydırma, kart kenarından fazla kaçmaz; sağ üstteki oran düğmesi kartı yeniden sığdırır. Elemanlar yakınlaştırılmışken de seçilir, taşınır, boyutlandırılır; iki parmak inince başlamış taşıma iptal olur.)*
   * Mock JSON'u cihaz çerçevesi içinde render eden `CanvasView`.
   * Normalize koordinat ↔ ekran noktası dönüşümü; yakınlaştırma ve kaydırma.
 - [x] **Seçim & Sürükleme:** *(Ayrıca: köşelerden boyutlandırma, görselde döndürme tutamacı (0/90/180/270°'ye yapışır), son dokunulan eleman en üste gelir.)*
@@ -122,7 +122,7 @@ Popüler uygulamaların ekranlarını PaperCraft'ın elemanlarıyla (Yazı, Buto
 
 Bu analizden çıkan eksikler (önem sırasıyla):
 - [x] **Yuvarlak / köşeli görsel:** Yüklenen fotoğrafa ve kutuya ortak şekil seçimi (Köşeli / Yuvarlak / Hap / Daire) + fotoğrafta Sığdır / Doldur. *(Profil fotoğrafı, ürün kartı, ikon zemini. Yuvarlak ikon butonu için Buton'un Daire şekli zaten var: ikon seçilince sadece ikon görünür.)*
-- [ ] **Kayan sayfa:** Ekran 393×852'den uzun olabilsin; editörde ve Dene'de dikey kaydırma. Akış, liste ve menü ekranlarının hepsi buna bağlı.
+- [x] **Kayan sayfa:** Kart telefon boyunda kalır, içerik kayar. Editörde boş yerde sürükleyince sayfa kayar (büyütülmüşse önce kart), kaydırmanın sonunda her zaman bir boş ekran daha var; sayfanın gerçek uzunluğu en alttaki elemanın 24 pt altında biter ve editörde "Sayfa sonu" kesik çizgisiyle görünür. Katalogdan eklenen eleman görünen alana gelir; eleman kartın alt/üst kenarına sürüklenince sayfa kendiliğinden kayar. Üst bar ve alt menüde "Kaydırınca: Sabit / Sayfayla kayar". Dene'de uzun sayfa kayar, sabit barlar yerinde kalır, aşağı çekip kapatma sadece en üstteyken. Sayfa kartı en fazla 2 ekran boyu uzar, fazlası soluklaşır. Tasarım: `docs/superpowers/specs/2026-11-08-scrolling-page-design.md`. *(Eksik: uzun sayfada Dene'de klavye yazılan kutuyu kaldırmıyor.)*
 - [ ] **Tekrarlayan satır / liste:** Aynı satırı elle dizmek yerine "çoğalt ve alta diz" ya da bir liste elemanı.
 - [ ] **Alttan açılan sayfa / açılır pencere:** Dene'de bir sayfayı sheet ya da uyarı olarak açma (Uber, Haritalar, "Emin misin?").
 - [ ] **Daha seyrek gerekenler:** segment seçici, sayfa noktaları (onboarding), hikâye halkası (kenarlıkla fotoğraf arasında boşluk), harita görseli, grafik.

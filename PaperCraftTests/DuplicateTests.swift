@@ -39,17 +39,19 @@ struct DuplicateTests {
         #expect(isClose(copyRect.width, originalRect.width) && isClose(copyRect.height, originalRect.height))
     }
 
-    @Test func copyStaysInsideScreen() throws {
+    /// Kopya yandan taşmaz; aşağıda sayfa uzayabildiği için 16 pt aşağı iner.
+    @Test func copyStaysInsideScreenSideways() throws {
         let editor = try makeEditor()
         editor.addElement(of: .button)
         let id = try #require(editor.selectedElementID)
-        editor.moveElement(id, dx: 1, dy: 1)   // sağ alt köşeye dayalı
+        editor.moveElement(id, dx: 1, dy: 0)   // sağ kenara dayalı
+        let original = try #require(editor.selectedElement?.frame)
 
         editor.duplicateSelectedElement()
 
         let frame = try #require(editor.selectedElement?.frame)
         #expect(frame.x + frame.width <= 1 + 0.000_001)
-        #expect(frame.y + frame.height <= 1 + 0.000_001)
+        #expect(abs(frame.y - (original.y + 16.0 / 852.0)) < 0.000_001)
     }
 
     @Test func barsAreNotDuplicated() throws {

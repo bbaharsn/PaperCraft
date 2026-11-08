@@ -36,6 +36,8 @@ struct NavigationBarPropertiesSheet: View {
             Text("Dikey konum, barı aşağı doğru uzattığında fark eder.")
         }
 
+        ScrollBehaviorSection(viewModel: viewModel)
+
         Section("Yazı Tipi") {
             FontPickerRow(fontName: viewModel.binding(\.fontName, default: FontFamilies.system))
         }

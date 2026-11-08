@@ -25,7 +25,8 @@ struct ProjectPagesView: View {
     /// Silinmesi onay bekleyen sayfa.
     @State private var deletingRecord: ScreenRecord?
 
-    private let columns = [GridItem(.adaptive(minimum: 150), spacing: 20)]
+    /// Uzun sayfanın kartı daha uzun; aynı satırdaki kısa kartlar üstten hizalanır.
+    private let columns = [GridItem(.adaptive(minimum: 150), spacing: 20, alignment: .top)]
 
     var body: some View {
         VStack(spacing: 0) {

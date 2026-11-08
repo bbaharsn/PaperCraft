@@ -50,13 +50,51 @@ struct CanvasViewportTests {
     @Test func dragStopsAtCardEdge() {
         let zoomed = CanvasViewport(zoom: 2)
         let viewport = CanvasViewport.dragged(from: zoomed, by: CGSize(width: 1000, height: -1000),
-                                              cardSize: card, available: area)
+                                              cardSize: card, available: area, scale: 1, contentHeight: 1)
         #expect(viewport.pan == CGSize(width: 160, height: -365))
     }
 
     @Test func fittedCardCannotBeDragged() {
         let viewport = CanvasViewport.dragged(from: CanvasViewport(), by: CGSize(width: 50, height: 50),
-                                              cardSize: card, available: area)
+                                              cardSize: card, available: area, scale: 1, contentHeight: 1)
         #expect(viewport.pan == .zero)
+    }
+
+    // MARK: - Sayfa kaydırma
+
+    /// Sığdırılmış kartta parmak 200 pt yukarı → sayfa 200 / 0.8 = 250 tuval point'i aşağı iner.
+    @Test func fittedDragScrollsPage() {
+        let viewport = CanvasViewport.dragged(from: CanvasViewport(), by: CGSize(width: 0, height: -200),
+                                              cardSize: card, available: area, scale: 0.8, contentHeight: 3)
+        #expect(viewport.pan == .zero)
+        #expect(abs(viewport.scroll - 250) < 0.001)
+    }
+
+    @Test func scrollStopsAtTop() {
+        let start = CanvasViewport(scroll: 100)
+        let viewport = CanvasViewport.dragged(from: start, by: CGSize(width: 0, height: 500),
+                                              cardSize: card, available: area, scale: 1, contentHeight: 3)
+        #expect(viewport.scroll == 0)
+    }
+
+    /// Tek ekranlık sayfa bir boş ekran daha (852 pt) kaydırılabilir, fazlası değil.
+    @Test func scrollStopsOneScreenBelowContent() {
+        let viewport = CanvasViewport.dragged(from: CanvasViewport(), by: CGSize(width: 0, height: -5000),
+                                              cardSize: card, available: area, scale: 1, contentHeight: 1)
+        #expect(viewport.scroll == 852)
+    }
+
+    /// 2 katında kart aşağı 365 pt kayabilir; parmak 500 pt yukarı → kart sınırına gelir, kalan 135 pt sayfayı kaydırır.
+    @Test func zoomedDragPansThenScrolls() {
+        let viewport = CanvasViewport.dragged(from: CanvasViewport(zoom: 2), by: CGSize(width: 0, height: -500),
+                                              cardSize: card, available: area, scale: 2, contentHeight: 3)
+        #expect(viewport.pan.height == -365)
+        #expect(abs(viewport.scroll - 135.0 / 2) < 0.001)
+    }
+
+    @Test func pinchKeepsScroll() {
+        let viewport = CanvasViewport.pinched(from: CanvasViewport(scroll: 300), magnification: 2, anchor: .zero,
+                                              cardSize: card, available: area)
+        #expect(viewport.scroll == 300)
     }
 }

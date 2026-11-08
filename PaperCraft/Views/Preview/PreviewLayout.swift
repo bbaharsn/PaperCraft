@@ -32,6 +32,18 @@ nonisolated struct PreviewLayout {
                        y: progress * (designHeight - height) + height / 2)
     }
 
+    /// Uzun (kayan) sayfada elemanın merkezi (tuval point'i). Konumlar yayılmaz, canvas'taki gibi
+    /// birebir durur; ilk ekranın üstü durum çubuğunun hemen altıdır.
+    func scrollingCenter(of frame: NormalizedFrame) -> CGPoint {
+        CGPoint(x: (frame.x + frame.width / 2) * reference.width,
+                y: (frame.y + frame.height / 2) * reference.height)
+    }
+
+    /// Kayan içeriğin yüksekliği (tuval point'i): sayfanın gerçek uzunluğu, en az görünen alan kadar.
+    func scrollingContentHeight(for screen: PrototypeScreen) -> CGFloat {
+        max(designHeight, CGFloat(screen.contentHeight) * reference.height)
+    }
+
     /// Klavye açıkken elemanın görünmesi için tasarımın ne kadar yukarı kayması gerektiği
     /// (ekran point'i). Eleman zaten görünüyorsa ya da klavye kapalıysa 0.
     func keyboardLift(for frame: NormalizedFrame, keyboardHeight: CGFloat) -> CGFloat {

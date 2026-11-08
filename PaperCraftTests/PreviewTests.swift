@@ -109,4 +109,41 @@ struct PreviewTests {
             - tall.height * CanvasView.referenceSize.height * layout.scale / 2
         #expect(top - lift >= 16 - 0.001)
     }
+
+    // MARK: - Kayan sayfa
+
+    /// Tek ekranlık sayfa kayan yerleşime geçmez; konumlar eskisi gibi durum çubuğunun altına yayılır.
+    @Test func shortPageUsesStretchedLayout() {
+        let screen = PrototypeScreen(name: "Kısa", elements: [
+            CanvasElement(type: .box, frame: NormalizedFrame(x: 0, y: 0.9, width: 0.5, height: 0.1),
+                          properties: ElementProperties())
+        ])
+        #expect(screen.contentHeight == 1)
+
+        let layout = PreviewLayout(stageSize: CGSize(width: 390, height: 844), topInset: 47)
+        let frame = screen.elements[0].frame
+        // En alttaki eleman, durum çubuğunun altındaki alanın en altına oturur
+        #expect(abs(layout.center(of: frame).y - (layout.designHeight - 85.2 / 2)) < 0.01)
+    }
+
+    @Test func scrollingCenterUsesCanvasPoints() {
+        let layout = PreviewLayout(stageSize: CGSize(width: 390, height: 844), topInset: 47)
+        let center = layout.scrollingCenter(of: NormalizedFrame(x: 0.25, y: 1.5, width: 0.5, height: 0.1))
+
+        #expect(abs(center.x - 196.5) < 0.01)
+        #expect(abs(center.y - (1.5 * 852 + 42.6)) < 0.01)
+    }
+
+    @Test func scrollingContentIsAtLeastScreenTall() {
+        let layout = PreviewLayout(stageSize: CGSize(width: 390, height: 844), topInset: 47)
+        let empty = PrototypeScreen(name: "Boş")
+        let long = PrototypeScreen(name: "Uzun", elements: [
+            CanvasElement(type: .box, frame: NormalizedFrame(x: 0, y: 2, width: 0.5, height: 0.5),
+                          properties: ElementProperties())
+        ])
+
+        // Boş sayfa bir ekran (852) sayılır; bu görünen alandan (≈803) uzun
+        #expect(layout.scrollingContentHeight(for: empty) == max(layout.designHeight, 852))
+        #expect(abs(layout.scrollingContentHeight(for: long) - (2.5 * 852 + 24)) < 0.01)
+    }
 }
