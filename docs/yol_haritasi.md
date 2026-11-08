@@ -55,7 +55,7 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
   * 10–15 gerçek el çizimi topla (bu set ileride doğruluk testi için sabit kalır).
   * Seçilen AI sağlayıcısına gönder, JSON çıktılarını incele: koordinat isabeti, tip doğruluğu, metin okuma.
   * Sonuçlara göre veri şemasını kesinleştir.
-- [ ] **Testler:** JSON encode/decode, bilinmeyen tip, eski şema sürümü için birim testleri. *(Kısmen: 145 test; bilinmeyen tip ve bilinmeyen değerlerin varsayılana düşmesi, bozuk kaydın boş ekran olarak açılması test ediliyor. Eksik: eski `schemaVersion`'lı bir kaydı açma testi — ilk şema değişikliğinde yazılacak.)*
+- [ ] **Testler:** JSON encode/decode, bilinmeyen tip, eski şema sürümü için birim testleri. *(Kısmen: 160 test; bilinmeyen tip ve bilinmeyen değerlerin varsayılana düşmesi, bozuk kaydın boş ekran olarak açılması test ediliyor. Eksik: eski `schemaVersion`'lı bir kaydı açma testi — ilk şema değişikliğinde yazılacak.)*
 
 ---
 
@@ -93,15 +93,39 @@ Bu doküman, kağıt üzerindeki el çizimlerini (wireframe/sketch) yapay zeka i
 - [x] **Seçim & Sürükleme:** *(Ayrıca: köşelerden boyutlandırma, görselde döndürme tutamacı (0/90/180/270°'ye yapışır), son dokunulan eleman en üste gelir.)*
   * Dokunulan eleman `selectedElement` olur, etrafına çerçeve çizilir.
   * Sürükleme sırasında geçici durum (`@GestureState`); model ve geri al kaydı yalnızca sürükleme bitince güncellenir (performans).
-- [ ] **Düzenleme Araçları (Alt Panel):** *(Kısmen: 10 elemanın hepsinin Özellikler sayfası var (katalogda sembol de var: eklerken önce sembol seçilir; ikon, boyut, renk, dolu/çizgi, döndürme, bağlantı; Temel sekmesinde kart, etiket ve daire için kutu: dolgu rengi, köşe yuvarlaklığı, kenarlık kalınlığı ve rengi, gölge, bağlantı) (çift dokunuşla açılır, değişiklik anında canvas'a yansır); Sil, Çoğalt (⌘D), geri al / yinele; katalogdan dokunarak ekleme; sayfa arka planı (düz renk ya da iki veya üç renkli geçiş, üç yön; Medya sekmesindeki kartla ya da boş yere çift dokunarak açılır). Eksik: katalogdan sürükle-bırak.)*
+- [ ] **Düzenleme Araçları (Alt Panel):** *(Kısmen: 10 elemanın hepsinin Özellikler sayfası var (katalogda sembol de var: eklerken önce sembol seçilir; ikon, boyut, renk, dolu/çizgi, döndürme, bağlantı; Temel sekmesinde kart, etiket ve daire için kutu: dolgu rengi, şekil (Köşeli / Yuvarlak + köşe kaydırıcısı / Hap / Daire), kenarlık kalınlığı ve rengi, gölge, bağlantı) (çift dokunuşla açılır, değişiklik anında canvas'a yansır); Sil, Çoğalt (⌘D), geri al / yinele; katalogdan dokunarak ekleme; sayfa arka planı (düz renk ya da iki veya üç renkli geçiş, üç yön; Medya sekmesindeki kartla ya da boş yere çift dokunarak açılır). Eksik: katalogdan sürükle-bırak.)*
   * Seçili elemanın metnini, rengini veya ikonunu değiştiren alt panel (`.sheet` + `presentationDetents`).
   * Silme, klonlama, geri al / yinele.
   * Paletten ekleme: önce **dokunarak ekleme**, ardından sürükle-bırak.
-- [ ] **Görseller:** *(Kısmen: hazır görsel kütüphanesi — Microsoft Fluent Emoji'den 28 yiyecek-içecek görseli (MIT), renkli ya da tek renk + renk seçimi; fotoğraf yükleme (`PhotosPicker`, en fazla 2048 px PNG) ve cihazda arka plan silme (Vision, simülatörde çalışmaz); hiçbir elemanın kullanmadığı fotoğraflar açılışta siliniyor (bozuk kayıt varsa hiçbiri silinmez). Projelerim'deki ⓘ ile açılan "Lisanslar" ekranı Fluent Emoji (MIT) ve logo fontu Bricolage Grotesque (OFL) metinlerini gösteriyor; yeni bir açık kaynak parça eklenince `License.all`'a da eklenmeli. Eksik: diğer kategoriler; iCloud açılınca temizliğin diğer cihazların fotoğraflarını silmemesi.)*
+- [ ] **Görseller:** *(Kısmen: hazır görsel kütüphanesi — Microsoft Fluent Emoji'den 28 yiyecek-içecek görseli (MIT), renkli ya da tek renk + renk seçimi; fotoğraf yükleme (`PhotosPicker`, en fazla 2048 px PNG) ve cihazda arka plan silme (Vision, simülatörde çalışmaz); hiçbir elemanın kullanmadığı fotoğraflar açılışta siliniyor (bozuk kayıt varsa hiçbiri silinmez). Yüklenen fotoğrafın şekli seçilir: Köşeli, Yuvarlak (köşe kaydırıcısı), Hap ya da Daire; Daire çerçeve kare olmasa da ortada tam daire çizer ve fotoğrafla doldurur (profil fotoğrafı). Diğer şekillerde "Sığdır" ya da "Doldur". Şekli izleyen kenarlık (kalınlık + renk). Şekil ve kenarlık kutuyla ortak (`frameShape`, `cornerRadius`, `borderWidth`, `borderColor`). Projelerim'deki ⓘ ile açılan "Lisanslar" ekranı Fluent Emoji (MIT) ve logo fontu Bricolage Grotesque (OFL) metinlerini gösteriyor; yeni bir açık kaynak parça eklenince `License.all`'a da eklenmeli. Eksik: diğer kategoriler; iCloud açılınca temizliğin diğer cihazların fotoğraflarını silmemesi.)*
 - [ ] **Çoklu Ekran & Önizleme Modu:** *(Kısmen: "Dene" ile canvas kartı büyüyerek tam ekran önizlemeye dönüşür; üst bar her telefonda güvenli alanın altına, alt menü en alta oturur; switch, slider, metin kutusu ve sekmeler dokunuşa tepki verir, butonlar basınca kararır. Önizleme ekranın kopyasıyla çalışır, tasarımı değiştirmez; klavye yazılan kutuyu kapatacaksa tasarım yukarı kayar; ✕ ya da aşağı kaydırmayla kart yerine küçülerek kapanır. Projede birden fazla sayfa var: ızgarada görünür, eklenir, adlandırılır, silinir; buton, görsel, sembol, üst bar sağ butonu ve alt menü sekmelerinin "Dokununca" bölümünden sayfaya gitme ve geri dönme bağlanır, Dene'de sayfalar yandan kayarak geçer. üst barın geri oku da önceki sayfaya döner. Eksik: metin elemanına bağlantı.)*
   * Ekran ekleme/silme, elemanlara "şu ekrana git" aksiyonu bağlama.
   * Editör çizgilerinin gizlendiği canlı prototip modu.
 - [x] **Kalıcılık:** Projelerim ekranı SwiftData ile çalışır. *(Oluştur, aç, yeniden adlandır, sil; editörde her değişiklik otomatik kaydedilir; ilk açılışta örnek proje.)*
+
+### 🔍 Örnek Uygulama Analizi (Kasım 2026)
+Popüler uygulamaların ekranlarını PaperCraft'ın elemanlarıyla (Yazı, Buton, Metin kutusu, Görsel, Sembol, Kutu, Switch, Slider, Üst bar, Sekme barı + çok sayfa, bağlantı, arka plan) yapabiliyor muyuz?
+
+| Uygulama / ekran | Durum | Nasıl / ne eksik |
+|---|---|---|
+| Instagram giriş | ✅ | Logo görsel, iki metin kutusu, buton, "Şifremi unuttum" yazısı |
+| Ayarlar (iPhone Ayarlar gibi) | ✅ | Her satır = Kutu + Sembol + Yazı + Switch; satırları tek tek dizmek zahmetli |
+| Spotify "Şimdi çalıyor" | ✅ | Kapak görsel, şarkı adı, ilerleme Slider, ⏮ ⏯ ⏭ sembolleri, koyu arka plan |
+| Hava durumu | ✅ | Geçişli arka plan, büyük derece yazısı, sembollerle saatlik satır |
+| Duolingo ders sorusu | ✅ | Soru yazısı, şık butonları, "Kontrol et" butonu, ince Kutu ile ilerleme |
+| WhatsApp sohbet | 🟡 | Balonlar Kutu + Yazı; yuvarlak profil fotoğrafı artık var; mesaj listesi kaymıyor |
+| Getir / Yemeksepeti ana sayfa | 🟡 | Kategori kartları Kutu + Görsel; sayfa ekran boyundan uzun olamıyor, yatay şerit yok |
+| Instagram akış | 🟡 | Tek gönderi olur; hikâye halkası (yuvarlak foto + kenarlık) ve kayan akış yok |
+| Banka uygulaması | 🟡 | Bakiye kartı ve butonlar olur; işlem listesi kaymıyor, grafik yok |
+| Uber / BiTaksi | 🔴 | Ekranın çoğu harita; alttan açılan sayfa yok |
+| YouTube / TikTok | 🔴 | Video ve tam ekran dikey akış yok; kapak görseliyle taklit edilebilir |
+
+Bu analizden çıkan eksikler (önem sırasıyla):
+- [x] **Yuvarlak / köşeli görsel:** Yüklenen fotoğrafa ve kutuya ortak şekil seçimi (Köşeli / Yuvarlak / Hap / Daire) + fotoğrafta Sığdır / Doldur. *(Profil fotoğrafı, ürün kartı, ikon zemini. Yuvarlak ikon butonu için Buton'un Daire şekli zaten var: ikon seçilince sadece ikon görünür.)*
+- [ ] **Kayan sayfa:** Ekran 393×852'den uzun olabilsin; editörde ve Dene'de dikey kaydırma. Akış, liste ve menü ekranlarının hepsi buna bağlı.
+- [ ] **Tekrarlayan satır / liste:** Aynı satırı elle dizmek yerine "çoğalt ve alta diz" ya da bir liste elemanı.
+- [ ] **Alttan açılan sayfa / açılır pencere:** Dene'de bir sayfayı sheet ya da uyarı olarak açma (Uber, Haritalar, "Emin misin?").
+- [ ] **Daha seyrek gerekenler:** segment seçici, sayfa noktaları (onboarding), hikâye halkası (kenarlıkla fotoğraf arasında boşluk), harita görseli, grafik.
 
 ---
 

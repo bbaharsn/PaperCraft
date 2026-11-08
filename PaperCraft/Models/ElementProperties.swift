@@ -13,7 +13,6 @@ nonisolated struct ElementProperties: Codable, Equatable {
     var placeholder: String?
     var textStyle: TextFontStyle?
     var symbolName: String?
-    var contentMode: String?
     var isOn: Bool?
     var value: Double?
     var minValue: Double?
@@ -116,15 +115,20 @@ nonisolated struct ElementProperties: Codable, Equatable {
     var uploadedImageName: String?
     /// Yüklenen fotoğrafın arka planı silinmiş hali mi gösterilsin.
     var removesBackground: Bool?
+    /// Yüklenen fotoğraf çerçeveye sığsın mı, çerçeveyi doldursun mu.
+    /// Fotoğrafın şekli ve köşe yuvarlaklığı kutuyla ortak `frameShape` ve `cornerRadius`'ta durur.
+    var contentMode: ImageContentMode?
     /// Döndürme açısı, derece (saat yönünde, 0..<360). Şimdilik sadece görselde döndürme tutamacı var.
     var rotation: Double?
 
     // MARK: - Kutu görünümü
     // Dolgu rengi `fillColor`'da durur.
 
-    /// Köşe yuvarlaklığı, point. Kısa kenarın yarısından büyükse yarısına iner (hap ya da daire).
+    /// Kutunun ve yüklenen fotoğrafın şekli. Boşsa kutu yuvarlak, fotoğraf köşeli çizilir.
+    var frameShape: FrameShape?
+    /// Köşe yuvarlaklığı, point; sadece `frameShape` `.rounded` iken kullanılır. Kısa kenarın yarısını geçemez.
     var cornerRadius: Double?
-    /// Kenarlık kalınlığı, point; 0 ise kenarlık yok.
+    /// Kenarlık kalınlığı, point; 0 ise kenarlık yok (kutu ve yüklenen fotoğraf).
     var borderWidth: Double?
     /// Kenarlık rengi, hex olarak.
     var borderColor: String?

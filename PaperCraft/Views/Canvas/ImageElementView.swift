@@ -37,9 +37,7 @@ struct ImageElementView: View {
 
     var body: some View {
         if let uploadedImage {
-            Image(decorative: uploadedImage, scale: 1)
-                .resizable()
-                .scaledToFit()
+            photo(uploadedImage)
         } else if let assetName {
             Image(assetName)
                 .resizable()
@@ -51,6 +49,48 @@ struct ImageElementView: View {
                 .resizable()
                 .scaledToFit()
                 .foregroundStyle(colorMode == .mono ? tintColor : .primary)
+        }
+    }
+
+    private var frameShape: FrameShape { properties.frameShape ?? .rectangle }
+
+    /// Daire her zaman doldurur: içi boş kalan bir daire profil fotoğrafına benzemez.
+    private var contentMode: ImageContentMode {
+        frameShape == .circle ? .fill : (properties.contentMode ?? .fit)
+    }
+
+    /// Yüklenen fotoğraf: çerçeveye sığar ya da çerçeveyi doldurur, sonra şekline göre kırpılır.
+    @ViewBuilder
+    private func photo(_ image: CGImage) -> some View {
+        let shape = FrameOutline(shape: frameShape, cornerRadius: properties.cornerRadius ?? 12)
+        switch contentMode {
+        case .fit:
+            // Şekil, fotoğrafın görünen kısmına uygulanır (çerçevedeki boşluğa değil).
+            Image(decorative: image, scale: 1)
+                .resizable()
+                .scaledToFit()
+                .clipShape(shape)
+                .overlay { border(shape) }
+        case .fill:
+            // Çerçeveyi dolduran boş bir yüzeyin üstüne taşan fotoğraf konur, sonra kırpılır.
+            // Dairede kırpma ortadaki karededir; fotoğraf o kareyi de doldurur.
+            Color.clear
+                .overlay {
+                    Image(decorative: image, scale: 1)
+                        .resizable()
+                        .scaledToFill()
+                }
+                .clipShape(shape)
+                .overlay { border(shape) }
+        }
+    }
+
+    /// Fotoğrafın şeklini izleyen kenarlık; fotoğrafın içine doğru çizilir, dışarı taşmaz.
+    @ViewBuilder
+    private func border(_ shape: FrameOutline) -> some View {
+        let width = max(properties.borderWidth ?? 0, 0)
+        if width > 0 {
+            shape.strokeBorder(properties.borderColor.flatMap(Color.init(hexString:)) ?? .white, lineWidth: width)
         }
     }
 

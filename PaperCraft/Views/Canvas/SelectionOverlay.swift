@@ -48,11 +48,25 @@ struct SelectionOverlay: View {
             case .underline, .none: return .rectangle
             }
         case .box:
-            return (element.properties.cornerRadius ?? 12) > 0 ? .rounded : .rectangle
+            return Self.selectionShape(for: element.properties.frameShape ?? .rounded,
+                                       cornerRadius: element.properties.cornerRadius ?? 12)
+        case .image where element.properties.uploadedImageName != nil:
+            return Self.selectionShape(for: element.properties.frameShape ?? .rectangle,
+                                       cornerRadius: element.properties.cornerRadius ?? 12)
         case .tabBar:
             return (element.properties.tabBarCorner ?? .square).buttonShape
         default:
             return nil
+        }
+    }
+
+    /// Kutu ve fotoğraf şeklinin seçim çizgisindeki karşılığı.
+    private static func selectionShape(for shape: FrameShape, cornerRadius: Double) -> ButtonShape {
+        switch shape {
+        case .rectangle: .rectangle
+        case .rounded: cornerRadius > 0 ? .rounded : .rectangle
+        case .capsule: .capsule
+        case .circle: .circle
         }
     }
 

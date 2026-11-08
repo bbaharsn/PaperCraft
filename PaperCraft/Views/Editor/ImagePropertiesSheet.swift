@@ -11,6 +11,8 @@ struct ImagePropertiesSheet: View {
 
     /// Tek renk için hazır renkler (siyah, koyu kahve, vurgu, mavi, yeşil, beyaz).
     private let tintPresets = ["#111111", "#2B2118", "#AC5135", "#007AFF", "#34C759", "#FFFFFF"]
+    /// Fotoğraf kenarlığı için hazır renkler (beyaz, siyah, vurgu, pembe, yeşil, mavi).
+    private let borderPresets = ["#FFFFFF", "#111111", "#AC5135", "#E1306C", "#25D366", "#007AFF"]
 
     private var colorMode: ImageColorMode {
         viewModel.selectedElement?.properties.imageColorMode ?? .original
@@ -18,6 +20,10 @@ struct ImagePropertiesSheet: View {
 
     private var tintHex: String {
         viewModel.selectedElement?.properties.tintColor ?? "#111111"
+    }
+
+    private var frameShape: FrameShape {
+        viewModel.selectedElement?.properties.frameShape ?? .rectangle
     }
 
     /// Yüklenen fotoğraf varken renk seçenekleri gizlenir; fotoğraf hep kendi renkleriyle çizilir.
@@ -28,7 +34,27 @@ struct ImagePropertiesSheet: View {
     var body: some View {
         UploadedImageSection(viewModel: viewModel)
 
-        if !hasUploadedImage {
+        if hasUploadedImage {
+            Section {
+                OptionPicker(selection: viewModel.binding(\.frameShape, default: .rectangle), title: \.title)
+                if frameShape == .rounded {
+                    LabeledContent("Köşe") {
+                        CornerRadiusSlider(viewModel: viewModel, defaultRadius: 12)
+                    }
+                }
+                if frameShape != .circle {
+                    OptionPicker(selection: viewModel.binding(\.contentMode, default: .fit), title: \.title)
+                }
+            } header: {
+                Text("Şekil")
+            } footer: {
+                Text(frameShape == .circle
+                     ? "Daire, fotoğrafı ortada tam daire olarak doldurur (profil fotoğrafı)."
+                     : "Sığdır: fotoğrafın tamamı görünür. Doldur: çerçeveyi doldurur, taşan kısım kırpılır.")
+            }
+
+            BorderSection(viewModel: viewModel, defaultWidth: 0, defaultColor: "#FFFFFF", presets: borderPresets)
+        } else {
             Section {
                 OptionPicker(selection: viewModel.binding(\.imageColorMode, default: .original), title: \.title)
                 if colorMode == .mono {

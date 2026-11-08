@@ -18,21 +18,18 @@ struct BoxElementView: View {
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            let size = geometry.size
-            let shape = RoundedRectangle(cornerRadius: Self.clampedRadius(properties.cornerRadius ?? 12, in: size),
-                                         style: .continuous)
-            let borderWidth = max(properties.borderWidth ?? 1, 0)
+        let shape = FrameOutline(shape: properties.frameShape ?? .rounded,
+                                 cornerRadius: properties.cornerRadius ?? 12)
+        let borderWidth = max(properties.borderWidth ?? 1, 0)
 
-            shape
-                .fill(fill)
-                .overlay {
-                    if borderWidth > 0 {
-                        shape.strokeBorder(borderColor, lineWidth: borderWidth)
-                    }
+        shape
+            .fill(fill)
+            .overlay {
+                if borderWidth > 0 {
+                    shape.strokeBorder(borderColor, lineWidth: borderWidth)
                 }
-                .shadow(color: .black.opacity(properties.hasShadow ?? false ? 0.15 : 0), radius: 6, y: 3)
-        }
+            }
+            .shadow(color: .black.opacity(properties.hasShadow ?? false ? 0.15 : 0), radius: 6, y: 3)
     }
 
     /// Köşe yuvarlaklığı kısa kenarın yarısını geçemez; geçerse kutu hap ya da daire olur.
@@ -46,8 +43,8 @@ struct BoxElementView: View {
         BoxElementView(properties: ElementProperties(fillColor: "#FFFFFF", cornerRadius: 12,
                                                      borderWidth: 1, borderColor: "#E5E5EA", hasShadow: true))
             .frame(width: 140, height: 180)
-        BoxElementView(properties: ElementProperties(fillColor: "#F27A1A", cornerRadius: 99, borderWidth: 0))
-            .frame(width: 60, height: 60)
+        BoxElementView(properties: ElementProperties(fillColor: "#25D366", frameShape: .circle, borderWidth: 0))
+            .frame(width: 80, height: 60)
     }
     .padding()
     .background(Theme.paper)
