@@ -16,6 +16,8 @@ struct CanvasView: View {
     var onDoubleTap: () -> Void = {}
     /// Sayfada boş bir yere çift dokunulunca çağrılır; ör. arka plan ayarlarını açmak için.
     var onBackgroundDoubleTap: () -> Void = {}
+    /// Sayfada boş bir yere dokunulunca çağrılır (seçim zaten kalkar); ör. kataloğu kapatmak için.
+    var onBackgroundTap: () -> Void = {}
     /// Alttan bir sayfanın kapattığı yükseklik (point). Tuval küçülmez; seçili eleman
     /// bu alanın altında kalacaksa tuval o eleman görünene kadar yukarı kayar.
     var bottomInset: CGFloat = 0
@@ -162,7 +164,10 @@ struct CanvasView: View {
         .contentShape(Rectangle())
         .onTapGesture(count: 2) { onBackgroundDoubleTap() }
         // Tek dokunuş beklemeden hemen seçimi kaldırsın diye çift dokunuşla aynı anda dinlenir.
-        .simultaneousGesture(TapGesture().onEnded { viewModel.select(nil) })
+        .simultaneousGesture(TapGesture().onEnded {
+            viewModel.select(nil)
+            onBackgroundTap()
+        })
     }
 
     /// Yakınlaştırılmışken sağ üstte görünen oran; dokununca kart yeniden alana sığar (kaydırma yerinde kalır).

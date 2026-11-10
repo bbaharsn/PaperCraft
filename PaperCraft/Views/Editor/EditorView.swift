@@ -77,6 +77,11 @@ struct EditorView: View {
                 onUndo: { viewModel.undo() },
                 onRedo: { viewModel.redo() },
                 onToggleCatalog: {
+                    // Katalog açılırken Özellikler ya da Arka Plan sayfası açıksa kapanır, üst üste binmesin.
+                    if !isCatalogOpen {
+                        wantsProperties = false
+                        isEditingBackground = false
+                    }
                     withAnimation(.snappy) {
                         isCatalogOpen.toggle()
                     }
@@ -91,6 +96,11 @@ struct EditorView: View {
             CanvasView(viewModel: viewModel,
                        onDoubleTap: { wantsProperties = true },
                        onBackgroundDoubleTap: { isEditingBackground = true },
+                       // Boş yere dokunmak açık kataloğu kapatır.
+                       onBackgroundTap: {
+                           guard isCatalogOpen else { return }
+                           withAnimation(.snappy) { isCatalogOpen = false }
+                       },
                        // Sayfa açıkken canvas küçülmez; seçili eleman sayfanın altında kalırsa yukarı kayar.
                        bottomInset: isShowingProperties.wrappedValue ? Self.propertiesSheetHeight : 0,
                        onCardFrameChange: { canvasCardFrame = $0 },
