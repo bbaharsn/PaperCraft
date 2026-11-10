@@ -21,6 +21,8 @@ struct CanvasView: View {
     var bottomInset: CGFloat = 0
     /// Kartın ekrandaki yeri değişince çağrılır; önizleme buradan büyür.
     var onCardFrameChange: (CGRect) -> Void = { _ in }
+    /// Ekran noktası → sayfa noktası eşlemesi değişince çağrılır; katalogdan sürüklenen eleman buna göre bırakılır.
+    var onMappingChange: (CanvasMapping) -> Void = { _ in }
 
     /// Şu an sürüklenen eleman ve parmağın ne kadar kaydığı (tuvalin kendi point'leri).
     /// Sürükleme bitene kadar model değişmez; sadece görüntü kayar.
@@ -49,7 +51,7 @@ struct CanvasView: View {
     private static let maxEdgeSpeed: CGFloat = 12
 
     /// Referans iPhone ekranı (point). Normalize koordinatlar buna göredir; önizleme de aynısını kullanır.
-    static let referenceSize = CGSize(width: 393, height: 852)
+    static let referenceSize = CanvasMapping.referenceSize
     private let referenceSize = Self.referenceSize
 
     var body: some View {
@@ -80,6 +82,9 @@ struct CanvasView: View {
         // Katalogdan eklenen eleman o an görünen alana gelsin
         .onChange(of: viewport.scroll, initial: true) { _, scroll in
             viewModel.visibleTop = scroll / referenceSize.height
+        }
+        .onChange(of: CanvasMapping(area: areaFrame, viewport: viewport), initial: true) { _, mapping in
+            onMappingChange(mapping)
         }
         // Eleman silinince sayfa kısalır; kaydırma yeni sınırın dışında kalmasın
         .onChange(of: contentHeight) { _, height in

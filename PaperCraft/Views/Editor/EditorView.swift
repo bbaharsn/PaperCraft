@@ -31,6 +31,12 @@ struct EditorView: View {
     @State private var isPreviewing = false
     /// Canvas kartının ekrandaki yeri; önizleme buradan büyür.
     @State private var canvasCardFrame: CGRect = .zero
+    /// Ekran noktası → sayfa noktası eşlemesi; katalogdan bırakılan eleman buna göre yerleşir.
+    @State private var canvasMapping: CanvasMapping?
+    /// Katalogdan sürüklenen eleman ve parmağın ekrandaki yeri.
+    @State private var catalogDrag: (element: CanvasElement, location: CGPoint)?
+    /// Sembol canvas'a bırakıldıysa, sembol seçilince eleman bu noktaya (normalize) yerleşir.
+    @State private var symbolDropPoint: CGPoint?
 
     /// Özellikler sayfasının yarım açıkken yüksekliği (point).
     private static let propertiesSheetHeight: CGFloat = 340
@@ -87,7 +93,8 @@ struct EditorView: View {
                        onBackgroundDoubleTap: { isEditingBackground = true },
                        // Sayfa açıkken canvas küçülmez; seçili eleman sayfanın altında kalırsa yukarı kayar.
                        bottomInset: isShowingProperties.wrappedValue ? Self.propertiesSheetHeight : 0,
-                       onCardFrameChange: { canvasCardFrame = $0 })
+                       onCardFrameChange: { canvasCardFrame = $0 },
+                       onMappingChange: { canvasMapping = $0 })
                 .padding()
                 // overlay: canvas'ın boyutunu değiştirmeden üstüne yüzer
                 .overlay(alignment: .bottom) {
@@ -113,23 +120,30 @@ struct EditorView: View {
             if isCatalogOpen {
                 CatalogPanel(
                     catalog: viewModel.catalog,
-                    onSelect: { type in
-                        if type == .symbol {
-                            wantsProperties = false
-                            isPickingSymbol = true
-                        } else {
-                            viewModel.addElement(of: type)
-                        }
-                    },
+                    onSelect: { type in add(type, at: nil) },
                     onBackground: {
                         wantsProperties = false
                         isEditingBackground = true
+                    },
+                    onDragChanged: { type, location in
+                        if let drag = catalogDrag {
+                            catalogDrag = (drag.element, location)
+                        } else if let element = viewModel.catalog.makeElement(of: type) {
+                            wantsProperties = false
+                            catalogDrag = (element, location)
+                        }
+                    },
+                    onDragEnded: { type, location in
+                        catalogDrag = nil
+                        // Canvas'ın dışına bırakılırsa hiçbir şey eklenmez.
+                        guard let point = canvasMapping?.pagePoint(forGlobal: location) else { return }
+                        add(type, at: point)
                     }
                 )
                     .transition(.move(edge: .bottom))
-                    .sheet(isPresented: $isPickingSymbol) {
+                    .sheet(isPresented: $isPickingSymbol, onDismiss: { symbolDropPoint = nil }) {
                         SymbolCatalogSheet(symbols: viewModel.symbolCatalog.symbols) { name in
-                            viewModel.addSymbol(named: name)
+                            viewModel.addSymbol(named: name, centeredAt: symbolDropPoint)
                         }
                     }
             }
@@ -159,6 +173,11 @@ struct EditorView: View {
                 // Sayfa açıkken de canvas'a dokunup başka eleman seçilebilsin.
                 .presentationBackgroundInteraction(.enabled(upThrough: .height(Self.propertiesSheetHeight)))
         }
+        .overlay {
+            if let drag = catalogDrag, let mapping = canvasMapping {
+                CatalogDragGhost(element: drag.element, location: drag.location, scale: mapping.scale)
+            }
+        }
         // Önizleme sayfaların kopyasıyla bu sayfadan açılır; ayrı sayfa değil, kart yerinde büyür
         .overlay {
             if isPreviewing {
@@ -167,6 +186,18 @@ struct EditorView: View {
                             cardFrame: canvasCardFrame,
                             onClose: { isPreviewing = false })
             }
+        }
+    }
+
+    /// Katalogdan eleman ekler. `point` (normalize) verilirse eleman oraya ortalanır, yoksa görünen alana düşer.
+    /// Sembolde önce sembol seçilir; eleman seçimden sonra eklenir.
+    private func add(_ type: ElementType, at point: CGPoint?) {
+        if type == .symbol {
+            wantsProperties = false
+            symbolDropPoint = point
+            isPickingSymbol = true
+        } else {
+            viewModel.addElement(of: type, centeredAt: point)
         }
     }
 

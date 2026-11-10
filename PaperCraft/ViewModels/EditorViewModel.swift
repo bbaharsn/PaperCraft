@@ -114,28 +114,48 @@ final class EditorViewModel {
     }
 
     /// Katalogdaki varsayılanlarla yeni bir eleman ekler ve onu seçer.
+    /// `center` verilirse (katalogdan sürükleyip bırakınca) eleman ortası oraya gelecek şekilde yerleşir.
     /// Tür katalogda yoksa hiçbir şey yapmaz.
-    func addElement(of type: ElementType) {
+    func addElement(of type: ElementType, centeredAt center: CGPoint? = nil) {
         guard let element = catalog.makeElement(of: type) else { return }
-        screen.elements.append(placedInVisibleArea(element))   // sona eklenen en üstte çizilir
-        selectedElementID = element.id
+        insert(element, centeredAt: center)
     }
 
     /// Katalogdan seçilen sembolle yeni bir sembol elemanı ekler ve onu seçer.
-    func addSymbol(named name: String) {
+    func addSymbol(named name: String, centeredAt center: CGPoint? = nil) {
         guard var element = catalog.makeElement(of: .symbol) else { return }
         element.properties.symbolName = name
-        screen.elements.append(placedInVisibleArea(element))   // sona eklenen en üstte çizilir
+        insert(element, centeredAt: center)
+    }
+
+    private func insert(_ element: CanvasElement, centeredAt center: CGPoint?) {
+        let newElement = center.map { placed(element, centeredAt: $0) } ?? placedInVisibleArea(element)
+        screen.elements.append(newElement)   // sona eklenen en üstte çizilir
         selectedElementID = element.id
     }
 
     /// Serbest yerleşen eleman, sayfa kaydırılmışsa o an görünen alana taşınır.
     /// En üste / en alta yapışan barlar katalogdaki yerinde kalır.
     private func placedInVisibleArea(_ element: CanvasElement) -> CanvasElement {
-        guard (catalog.definition(for: element.type)?.placement ?? .free) == .free else { return element }
+        guard isFreelyPlaced(element) else { return element }
         var element = element
         element.frame.y += visibleTop
         return element
+    }
+
+    /// Bırakılan noktaya (normalize, sayfa kaydırması dahil) ortalanır; yandan ve üstten taşmaz,
+    /// aşağıda sayfa uzar. En üste / en alta yapışan barlar katalogdaki yerinde kalır.
+    private func placed(_ element: CanvasElement, centeredAt center: CGPoint) -> CanvasElement {
+        guard isFreelyPlaced(element) else { return element }
+        var element = element
+        let frame = element.frame
+        element.frame.x = min(max(center.x - frame.width / 2, 0), max(1 - frame.width, 0))
+        element.frame.y = max(center.y - frame.height / 2, 0)
+        return element
+    }
+
+    private func isFreelyPlaced(_ element: CanvasElement) -> Bool {
+        (catalog.definition(for: element.type)?.placement ?? .free) == .free
     }
 
     /// Seçili elemanı siler ve seçimi kaldırır. Seçili eleman yoksa hiçbir şey yapmaz.
