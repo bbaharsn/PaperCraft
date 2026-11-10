@@ -34,9 +34,12 @@ final class EditorViewModel {
     private(set) var redoStack: [PrototypeScreen] = []
     /// En fazla bu kadar adım geri alınabilir; daha eskisi unutulur.
     static let undoLimit = 50
-    /// Bu süreden kısa aralıklarla gelen değişiklikler (köşe çekmek, yazı yazmak) tek adım sayılır.
+    /// Bu süreden kısa aralıklarla gelen ve aynı şeyi değiştiren değişiklikler (köşe çekmek, yazı yazmak)
+    /// tek adım sayılır. Farklı şeyler (ör. yükseklik, sonra renk) hızlı da gelse ayrı adımdır.
     static let mergeInterval: TimeInterval = 0.6
     @ObservationIgnored private var lastChangeDate: Date?
+    /// Son değişikliğin neyi değiştirdiği (`ScreenChange.key`); birleştirme kararı için.
+    @ObservationIgnored private var lastChangeKey: String?
     /// Geri al / yinele ve öne getirme sırasında kayıt tutulmaz.
     @ObservationIgnored private var isRecordingPaused = false
     /// Şu anki zaman; testlerde saati elle ilerletmek için değiştirilir.
@@ -93,8 +96,13 @@ final class EditorViewModel {
     private func recordUndo(from oldScreen: PrototypeScreen) {
         guard !isRecordingPaused, oldScreen != screen else { return }
         let date = now()
-        defer { lastChangeDate = date }
-        if let lastChangeDate, date.timeIntervalSince(lastChangeDate) < Self.mergeInterval { return }
+        let key = ScreenChange.key(from: oldScreen, to: screen)
+        defer {
+            lastChangeDate = date
+            lastChangeKey = key
+        }
+        if let lastChangeDate, key != nil, key == lastChangeKey,
+           date.timeIntervalSince(lastChangeDate) < Self.mergeInterval { return }
 
         undoStack.append(oldScreen)
         if undoStack.count > Self.undoLimit { undoStack.removeFirst() }
@@ -104,6 +112,7 @@ final class EditorViewModel {
     private func restore(_ savedScreen: PrototypeScreen) {
         withoutRecording { screen = savedScreen }
         lastChangeDate = nil   // sonraki değişiklik öncekiyle birleşmesin
+        lastChangeKey = nil
         if selectedElement == nil { selectedElementID = nil }   // seçili eleman o halde yoksa
     }
 
@@ -258,6 +267,7 @@ final class EditorViewModel {
     }
 
     /// Özellikler sayfasından boyut girildiğinde çağrılır; sol üst köşe yerinde kalır.
+    /// Yükseklik en fazla bir ekran boyu olur; yanlışlıkla yazılan 4434 elemanı sayfa boyunca uzatmasın.
     func setSelectedSize(width: Double, height: Double) {
         guard let index = screen.elements.firstIndex(where: { $0.id == selectedElementID }) else { return }
         let element = screen.elements[index]
@@ -265,7 +275,7 @@ final class EditorViewModel {
         let minSize = minimumSize(of: element)
 
         var newWidth = min(max(width, minSize.width), canvasSize.width - rect.minX)
-        var newHeight = min(max(height, minSize.height), bottomLimit(for: element) - rect.minY)
+        var newHeight = min(max(height, minSize.height), bottomLimit(for: element) - rect.minY, canvasSize.height)
         if isCircleButton(element) {
             // Hangisi değiştiyse onu esas al, diğerini ona eşitle.
             let side = newWidth != rect.width ? newWidth : newHeight

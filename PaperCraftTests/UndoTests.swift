@@ -83,6 +83,66 @@ struct UndoTests {
         #expect(editor.selectedElement?.properties.text == "Bir")
     }
 
+    @Test func quickDifferentChangesAreSeparateSteps() throws {
+        let clock = Clock()
+        let editor = try makeEditor(clock: clock)
+        editor.addElement(of: .button)
+        clock.pause()
+
+        // Özellikler sayfasında art arda: yükseklik, şekil, renk (araya bekleme girmeden)
+        editor.setSelectedSize(width: 72, height: 60)
+        clock.date += 0.1
+        editor.updateSelectedProperties { $0.shape = .capsule }
+        clock.date += 0.1
+        editor.updateSelectedProperties { $0.fillColor = "#34C759" }
+
+        editor.undo()   // sadece renk geri gelir
+        #expect(editor.selectedElement?.properties.fillColor != "#34C759")
+        #expect(editor.selectedElement?.properties.shape == .capsule)
+        #expect(editor.pointRect(of: try #require(editor.selectedElement)).height == 60)
+
+        editor.undo()   // sonra şekil
+        #expect(editor.selectedElement?.properties.shape != .capsule)
+        #expect(editor.pointRect(of: try #require(editor.selectedElement)).height == 60)
+    }
+
+    @Test func quickResizeStepsAreOneStep() throws {
+        let clock = Clock()
+        let editor = try makeEditor(clock: clock)
+        editor.addElement(of: .box)
+        clock.pause()
+        let original = try #require(editor.selectedElement).frame
+
+        // Köşe çekmek gibi: aynı elemanın çerçevesi arka arkaya değişir
+        for _ in 0..<5 {
+            editor.resizeElement(try #require(editor.selectedElementID), from: .bottomTrailing,
+                                 by: CGSize(width: 4, height: 4))
+            clock.date += 0.05
+        }
+
+        editor.undo()
+        #expect(editor.selectedElement?.frame == original)
+    }
+
+    @Test func sameChangeOnAnotherElementIsSeparateStep() throws {
+        let clock = Clock()
+        let editor = try makeEditor(clock: clock)
+        editor.addElement(of: .button)
+        let first = try #require(editor.selectedElementID)
+        clock.pause()
+        editor.addElement(of: .button)
+        clock.pause()
+
+        editor.updateSelectedProperties { $0.text = "B" }
+        clock.date += 0.1
+        editor.select(first)
+        editor.updateSelectedProperties { $0.text = "A" }
+
+        editor.undo()
+        #expect(editor.screen.elements.first { $0.id == first }?.properties.text == "Button")
+        #expect(editor.screen.elements.contains { $0.properties.text == "B" })
+    }
+
     @Test func newChangeClearsRedo() throws {
         let clock = Clock()
         let editor = try makeEditor(clock: clock)

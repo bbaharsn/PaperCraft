@@ -81,6 +81,14 @@ struct ResizeTests {
         #expect(isClose(after.width, 44) && isClose(after.height, 70))
     }
 
+    @Test func typedHeightIsCappedAtOneScreen() throws {
+        let editor = try makeEditorWithButton()
+
+        editor.setSelectedSize(width: 72, height: 4434)   // 44 yazarken yanlışlıkla 4434
+
+        #expect(isClose(try rect(editor).height, 852))
+    }
+
     @Test func handlesLeaveSmallElementsFreeToDrag() {
         // Kısa kenarda dokunma alanı tamamen elemanın dışında
         #expect(SelectionOverlay.outwardShift(side: 24, hitSize: 36, freeSize: 44) == 18)

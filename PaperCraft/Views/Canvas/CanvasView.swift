@@ -12,7 +12,7 @@ import SwiftUI
 /// küçültülür. Böylece yazılar dahil her şey orantılı küçülür.
 struct CanvasView: View {
     let viewModel: EditorViewModel
-    /// Bir elemana çift dokunulunca (seçildikten sonra) çağrılır; ör. Özellikler sayfasını açmak için.
+    /// Bir elemana çift dokunulunca ya da basılı tutulunca (seçildikten sonra) çağrılır; ör. Özellikler sayfasını açmak için.
     var onDoubleTap: () -> Void = {}
     /// Sayfada boş bir yere çift dokunulunca çağrılır; ör. arka plan ayarlarını açmak için.
     var onBackgroundDoubleTap: () -> Void = {}
@@ -47,6 +47,8 @@ struct CanvasView: View {
     @State private var edgeScrolled: CGFloat = 0
     @State private var edgeScrollTask: Task<Void, Never>?
 
+    /// Elemana bu kadar (saniye) basılı tutunca Özellikler açılır.
+    private static let longPressDuration: Double = 0.5
     /// Kartın üst/alt kenarından bu kadar içeride (ekran point'i) parmak sayfayı kaydırmaya başlar.
     private static let edgeBand: CGFloat = 48
     /// En hızlı otomatik kaydırma, adım başına (tuval point'i; saniyede ~60 adım).
@@ -269,6 +271,12 @@ struct CanvasView: View {
                     }
                     // Tek dokunuş beklemeden hemen seçsin diye çift dokunuşla aynı anda dinlenir.
                     .simultaneousGesture(TapGesture().onEnded { viewModel.select(element.id) })
+                    // Basılı tutmak da çift dokunuş gibi Özellikler'i açar. Parmak kayarsa iptal olur, taşıma başlar.
+                    .simultaneousGesture(LongPressGesture(minimumDuration: Self.longPressDuration).onEnded { _ in
+                        guard draggingID == nil, !isPinching else { return }
+                        viewModel.select(element.id)
+                        onDoubleTap()
+                    })
                     .gesture(dragGesture(for: element, scale: scale))
                     // Taşıma hareketinden sonra eklenir; böylece tutamaçlar kendi hareketini alır.
                     .overlay {
