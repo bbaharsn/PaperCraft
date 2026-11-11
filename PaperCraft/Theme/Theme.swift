@@ -24,6 +24,8 @@ enum Theme {
     static let panel = Color(hex: 0xF7F1E5)
     /// Seçili olmayan sekmeler
     static let tabInactive = Color(hex: 0xE8DEC7)
+    /// Sürüklerken çıkan hizalama çizgisi; seçimin mavisinden ve vurgu renginden ayrışsın diye pembe
+    static let snapGuide = Color(hex: 0xE5338C)
 
     // MARK: - Ölçüler
 
@@ -46,7 +48,7 @@ enum Theme {
     let swatches: [(String, Color)] = [
         ("background", Theme.background), ("paper", Theme.paper), ("ink", Theme.ink),
         ("accent", Theme.accent), ("tape", Theme.tape), ("panel", Theme.panel),
-        ("tabInactive", Theme.tabInactive),
+        ("tabInactive", Theme.tabInactive), ("snapGuide", Theme.snapGuide),
     ]
     VStack(alignment: .leading) {
         ForEach(swatches, id: \.0) { name, color in

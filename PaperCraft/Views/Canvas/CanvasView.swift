@@ -30,6 +30,8 @@ struct CanvasView: View {
     /// Sürükleme bitene kadar model değişmez; sadece görüntü kayar.
     @State private var draggingID: UUID?
     @State private var dragOffset: CGSize = .zero
+    /// Sürüklenen eleman şu an hangi hizalara yapışık; çizgiler bunlardan çizilir.
+    @State private var snapGuides: [SnapGuide] = []
 
     /// İki parmakla yakınlaştırma ve kaydırma durumu.
     @State private var viewport = CanvasViewport()
@@ -125,6 +127,8 @@ struct CanvasView: View {
             // Sabit üst bar ve alt menü kaymaz; içerik altından geçer.
             elementsLayer(scale: scale, pinned: true)
                 .frame(width: referenceSize.width, height: referenceSize.height)
+
+            guidesLayer(scale: scale)
         }
         .frame(width: referenceSize.width, height: referenceSize.height, alignment: .topLeading)
                 // Gerçek boyutta çizilen tuvali ekrana sığacak kadar küçült
@@ -199,6 +203,7 @@ struct CanvasView: View {
                     // İlk parmakla başlamış bir eleman taşıması iptal olur, eleman yerine döner.
                     draggingID = nil
                     dragOffset = .zero
+                    snapGuides = []
                 }
                 guard let start = gestureStart else { return }
                 let anchor = CGPoint(x: value.startLocation.x - available.width / 2,
@@ -324,24 +329,89 @@ struct CanvasView: View {
                     draggingID = element.id
                     viewModel.select(element.id)
                 }
-                dragOffset = CGSize(width: value.translation.width / scale,
-                                    height: value.translation.height / scale)
+                let snap = snapped(element, translation: value.translation, scale: scale)
+                dragOffset = snap.offset
+                snapGuides = snap.guides
                 if !element.isPinned {
                     updateEdgeScroll(fingerY: value.location.y)
                 }
             }
             .onEnded { value in
                 stopEdgeScroll()
+                snapGuides = []
                 // Yakınlaştırma yüzünden iptal edildiyse eleman yerinde kalır
                 guard draggingID == element.id else { return }
-                // Ekran point'i → normalize dönüşümü; kenarda kendiliğinden kayılan yol da eklenir
-                viewModel.moveElement(element.id,
-                                      dx: value.translation.width / (referenceSize.width * scale),
-                                      dy: (value.translation.height / scale + edgeScrolled) / referenceSize.height)
+                // Tuval point'i → normalize dönüşümü; kenarda kendiliğinden kayılan yol da eklenir
+                let offset = snapped(element, translation: value.translation, scale: scale).offset
+                let dx = offset.width / referenceSize.width
+                let dy = (offset.height + edgeScrolled) / referenceSize.height
+                // Hizaya yapışıp eski yerine döndüyse boş bir geri al adımı oluşmasın
+                if abs(dx) > 1e-6 || abs(dy) > 1e-6 {
+                    viewModel.moveElement(element.id, dx: dx, dy: dy)
+                }
                 draggingID = nil
                 dragOffset = .zero
                 edgeScrolled = 0
             }
+    }
+
+    /// Parmağın kaydırdığı yol (tuval point'i), hizaya yapışma düzeltmesi eklenmiş halde.
+    /// Eşik ekranda sabit kalsın diye yakınlaştırmaya bölünür.
+    private func snapped(_ element: CanvasElement, translation: CGSize, scale: CGFloat) -> SnapResult {
+        let raw = CGSize(width: translation.width / scale, height: translation.height / scale)
+        let rect = snapBox(of: element, layerOf: element).offsetBy(dx: raw.width, dy: raw.height + edgeScrolled)
+        // Sol kenar her iki katmanda aynı; çizginin boyu için kutular taşınanın katmanına çevrilir.
+        let targets = viewModel.screen.elements.filter { $0.id != element.id }
+            .map { snapBox(of: $0, layerOf: element) }
+        var snap = SnapGuides.snapMove(rect, targets: targets, pageWidth: referenceSize.width,
+                                       tolerance: SnapGuides.threshold / scale)
+        snap.offset = CGSize(width: raw.width + snap.offset.width, height: raw.height + snap.offset.height)
+        return snap
+    }
+
+    /// Elemanın ekranda kapladığı kutu (döndürülmüşse dönmüş hali), `mover`'ın katmanındaki point'lerle.
+    /// Kayan sayfadaki eleman sabit bara göre, ya da tersi, o anki kaydırma kadar kaydırılır.
+    private func snapBox(of element: CanvasElement, layerOf mover: CanvasElement) -> CGRect {
+        var box = SnapGuides.boundingBox(viewModel.pointRect(of: element),
+                                         degrees: element.properties.rotation ?? 0)
+        if element.isPinned != mover.isPinned {
+            box.origin.y += mover.isPinned ? -viewport.scroll : viewport.scroll
+        }
+        return box
+    }
+
+    /// Hizalama çizgileri; elemanların üstünde, dokunuş almaz. Kalınlık ekranda hep 1 point.
+    /// Çizgiler taşınan elemanın katmanında hesaplanır; kayan sayfadaysa kaydırma kadar yukarı alınır.
+    /// Yeni bir hizaya yapışınca telefon hafifçe titrer.
+    private func guidesLayer(scale: CGFloat) -> some View {
+        let mover = viewModel.screen.elements.first { $0.id == draggingID }
+        let shift = (mover?.isPinned ?? true) ? 0 : viewport.scroll
+        let thickness = 1 / scale
+
+        return ZStack(alignment: .topLeading) {
+            ForEach(snapGuides, id: \.self) { guide in
+                switch guide.axis {
+                case .vertical:
+                    let span = guide.span.map { ($0.lowerBound - shift)...($0.upperBound - shift) }
+                        ?? 0...referenceSize.height
+                    Rectangle()
+                        .fill(Theme.snapGuide)
+                        .frame(width: thickness, height: span.upperBound - span.lowerBound)
+                        .offset(x: guide.position - thickness / 2, y: span.lowerBound)
+                case .horizontal:
+                    let span = guide.span ?? 0...referenceSize.width
+                    Rectangle()
+                        .fill(Theme.snapGuide)
+                        .frame(width: span.upperBound - span.lowerBound, height: thickness)
+                        .offset(x: span.lowerBound, y: guide.position - shift - thickness / 2)
+                }
+            }
+        }
+        .frame(width: referenceSize.width, height: referenceSize.height, alignment: .topLeading)
+        .allowsHitTesting(false)
+        .sensoryFeedback(.alignment, trigger: snapGuides) { old, new in
+            !new.isEmpty && new != old
+        }
     }
 
     /// Parmak kartın görünen kısmının alt/üst kenarına yaklaştıysa sayfayı o yöne kaydırmaya başlar,
