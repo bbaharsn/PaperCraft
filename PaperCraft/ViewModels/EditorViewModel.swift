@@ -22,6 +22,11 @@ final class EditorViewModel {
         didSet { recordUndo(from: oldValue) }
     }
     var selectedElementID: UUID?
+    /// Toplu seçim modu açık mı? Açıkken dokunmak elemanı `multiSelection`'a ekler ya da çıkarır.
+    /// Görünüm durumudur; kaydedilmez, geri al'a girmez.
+    var isMultiSelecting = false
+    /// Toplu seçim modunda seçilen elemanlar. Sabit barlar buraya girmez.
+    var multiSelection: Set<UUID> = []
     /// Canvas'ta görünen alanın üst kenarı, ekran yüksekliği birimiyle (sayfa ne kadar aşağı kaydırıldı).
     /// Katalogdan eklenen eleman bu alana gelir. Görünüm durumudur; kaydedilmez, geri al'a girmez.
     @ObservationIgnored var visibleTop: Double = 0
@@ -63,14 +68,12 @@ final class EditorViewModel {
 
     /// Bir elemanı seçer; `nil` verilirse seçimi kaldırır.
     /// Seçilen eleman en üste taşınır: son dokunulan eleman diğerlerinin üstünde çizilir.
+    /// Kutu seçilince içindekiler de onunla öne gelir; yoksa kutu onları örterdi.
     /// Öne getirme geri al adımı sayılmaz; yoksa her dokunuş bir adım olurdu.
     func select(_ id: UUID?) {
         selectedElementID = id
-        guard let id, let index = screen.elements.firstIndex(where: { $0.id == id }),
-              index != screen.elements.count - 1 else { return }
-        withoutRecording {
-            screen.elements.append(screen.elements.remove(at: index))   // sona eklenen en üstte çizilir
-        }
+        guard let id else { return }
+        bringToFront(movingGroup(for: [id]))
     }
 
     // MARK: - Geri al / Yinele
@@ -114,9 +117,11 @@ final class EditorViewModel {
         lastChangeDate = nil   // sonraki değişiklik öncekiyle birleşmesin
         lastChangeKey = nil
         if selectedElement == nil { selectedElementID = nil }   // seçili eleman o halde yoksa
+        let existing = Set(screen.elements.map(\.id))
+        multiSelection.formIntersection(existing)
     }
 
-    private func withoutRecording(_ change: () -> Void) {
+    func withoutRecording(_ change: () -> Void) {
         isRecordingPaused = true
         change()
         isRecordingPaused = false
@@ -167,10 +172,12 @@ final class EditorViewModel {
         (catalog.definition(for: element.type)?.placement ?? .free) == .free
     }
 
-    /// Seçili elemanı siler ve seçimi kaldırır. Seçili eleman yoksa hiçbir şey yapmaz.
+    /// Seçili elemanı siler ve seçimi kaldırır. Kutuysa içindekiler de silinir (tek geri al adımı).
+    /// Seçili eleman yoksa hiçbir şey yapmaz.
     func deleteSelectedElement() {
         guard let id = selectedElementID else { return }
-        screen.elements.removeAll { $0.id == id }
+        let doomed = movingGroup(for: [id]).union([id])   // sabit bar da kendi başına silinebilir
+        screen.elements.removeAll { doomed.contains($0.id) }
         selectedElementID = nil
     }
 
@@ -203,15 +210,7 @@ final class EditorViewModel {
     /// Elemanı normalize miktarda kaydırır. Yanlardan ve yukarıdan taşmaz; aşağıda sayfa uzar.
     /// Sabit üst bar ve alt menü ekranın görünen kısmında (0...1) kalır.
     func moveElement(_ id: UUID, dx: Double, dy: Double) {
-        guard let index = screen.elements.firstIndex(where: { $0.id == id }) else { return }
-
-        var frame = screen.elements[index].frame
-        frame.x = min(max(frame.x + dx, 0), 1 - frame.width)
-        frame.y = max(frame.y + dy, 0)
-        if screen.elements[index].isPinned {
-            frame.y = min(frame.y, 1 - frame.height)
-        }
-        screen.elements[index].frame = frame
+        moveGroup([id], dx: dx, dy: dy)
     }
 
     // MARK: - Boyut

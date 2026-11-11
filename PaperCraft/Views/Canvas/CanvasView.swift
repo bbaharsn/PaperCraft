@@ -26,9 +26,9 @@ struct CanvasView: View {
     /// Ekran noktası → sayfa noktası eşlemesi değişince çağrılır; katalogdan sürüklenen eleman buna göre bırakılır.
     var onMappingChange: (CanvasMapping) -> Void = { _ in }
 
-    /// Şu an sürüklenen eleman ve parmağın ne kadar kaydığı (tuvalin kendi point'leri).
-    /// Sürükleme bitene kadar model değişmez; sadece görüntü kayar.
-    @State private var draggingID: UUID?
+    /// Şu an birlikte sürüklenen elemanlar (kutu + içindekiler ya da toplu seçim) ve parmağın ne kadar
+    /// kaydığı (tuvalin kendi point'leri). Sürükleme bitene kadar model değişmez; sadece görüntü kayar.
+    @State private var draggingIDs: Set<UUID> = []
     @State private var dragOffset: CGSize = .zero
     /// Sürüklenen eleman şu an hangi hizalara yapışık; çizgiler bunlardan çizilir.
     @State private var snapGuides: [SnapGuide] = []
@@ -115,6 +115,8 @@ struct CanvasView: View {
                 backgroundLayer(height: scrollableHeight)
                 elementsLayer(scale: scale, pinned: false)
                     .frame(width: referenceSize.width, height: scrollableHeight)
+                groupOutlineLayer(scale: scale)
+                    .frame(width: referenceSize.width, height: scrollableHeight, alignment: .topLeading)
                 if contentHeight > 1 {
                     PageEndLine(scale: scale)
                         .frame(width: referenceSize.width)
@@ -168,10 +170,18 @@ struct CanvasView: View {
         .frame(width: referenceSize.width, height: height)
         // Dokunuşlar arka planın üstünde; elemana dokunmak buraya gelmez.
         .contentShape(Rectangle())
-        .onTapGesture(count: 2) { onBackgroundDoubleTap() }
+        .onTapGesture(count: 2) {
+            guard !viewModel.isMultiSelecting else { return }
+            onBackgroundDoubleTap()
+        }
         // Tek dokunuş beklemeden hemen seçimi kaldırsın diye çift dokunuşla aynı anda dinlenir.
+        // Toplu seçimde mod açık kalır, sadece seçim temizlenir.
         .simultaneousGesture(TapGesture().onEnded {
-            viewModel.select(nil)
+            if viewModel.isMultiSelecting {
+                viewModel.clearMultiSelection()
+            } else {
+                viewModel.select(nil)
+            }
             onBackgroundTap()
         })
     }
@@ -201,7 +211,7 @@ struct CanvasView: View {
                     gestureStart = viewport
                     isPinching = true
                     // İlk parmakla başlamış bir eleman taşıması iptal olur, eleman yerine döner.
-                    draggingID = nil
+                    draggingIDs = []
                     dragOffset = .zero
                     snapGuides = []
                 }
@@ -263,7 +273,9 @@ struct CanvasView: View {
         return ZStack {
             ForEach(layerElements, id: \.element.id) { index, element in
                 let frame = element.frame
-                let isSelected = element.id == viewModel.selectedElementID
+                let isSelected = element.id == viewModel.selectedElementID && !viewModel.isMultiSelecting
+                let isDashed = (draggingIDs.count > 1 && draggingIDs.contains(element.id))
+                    || (viewModel.isMultiSelecting && viewModel.multiSelection.contains(element.id))
 
                 ElementView(element: element)
                     .allowsHitTesting(false)
@@ -271,14 +283,22 @@ struct CanvasView: View {
                            height: frame.height * referenceSize.height)
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) {
+                        guard !viewModel.isMultiSelecting else { return }
                         viewModel.select(element.id)
                         onDoubleTap()
                     }
                     // Tek dokunuş beklemeden hemen seçsin diye çift dokunuşla aynı anda dinlenir.
-                    .simultaneousGesture(TapGesture().onEnded { viewModel.select(element.id) })
+                    // Toplu seçimde dokunmak elemanı seçime ekler ya da çıkarır.
+                    .simultaneousGesture(TapGesture().onEnded {
+                        if viewModel.isMultiSelecting {
+                            viewModel.toggleInMultiSelection(element.id)
+                        } else {
+                            viewModel.select(element.id)
+                        }
+                    })
                     // Basılı tutmak da çift dokunuş gibi Özellikler'i açar. Parmak kayarsa iptal olur, taşıma başlar.
                     .simultaneousGesture(LongPressGesture(minimumDuration: Self.longPressDuration).onEnded { _ in
-                        guard draggingID == nil, !isPinching else { return }
+                        guard draggingIDs.isEmpty, !isPinching, !viewModel.isMultiSelecting else { return }
                         viewModel.select(element.id)
                         onDoubleTap()
                     })
@@ -294,11 +314,13 @@ struct CanvasView: View {
                                                  viewModel.setRotation(element.id,
                                                                        degrees: EditorViewModel.snappedRotation(degrees))
                                              } : nil)
+                        } else if isDashed {
+                            DashedOutline(scale: scale)
                         }
                     }
                     // Seçim çizgisi de elemanla birlikte döner
                     .rotationEffect(.degrees(element.properties.rotation ?? 0))
-                    .offset(element.id == draggingID
+                    .offset(draggingIDs.contains(element.id)
                             ? CGSize(width: dragOffset.width, height: dragOffset.height + edgeScrolled)
                             : .zero)
                     .position(x: (frame.x + frame.width / 2) * referenceSize.width,
@@ -306,6 +328,23 @@ struct CanvasView: View {
                     // ZStack sıra değişince çizim sırasını her zaman güncellemiyor; dizideki sırayı açıkça veriyoruz.
                     .zIndex(Double(index))
             }
+        }
+    }
+
+    /// Toplu seçimdeki bütün elemanları saran ince çerçeve; seçim sürüklenirken onunla birlikte kayar.
+    /// Sabit barlar toplu seçime girmediği için kayan sayfa katmanında çizilir.
+    @ViewBuilder
+    private func groupOutlineLayer(scale: CGFloat) -> some View {
+        let members = viewModel.screen.elements.filter { viewModel.multiSelection.contains($0.id) && !$0.isPinned }
+        if viewModel.isMultiSelecting, let first = members.first {
+            let box = { (e: CanvasElement) in
+                SnapGuides.boundingBox(viewModel.pointRect(of: e), degrees: e.properties.rotation ?? 0)
+            }
+            let rect = members.dropFirst().reduce(box(first)) { $0.union(box($1)) }
+            let isMoving = !draggingIDs.isEmpty && viewModel.multiSelection.isSubset(of: draggingIDs)
+            GroupOutline(rect: rect, scale: scale)
+                .offset(isMoving ? CGSize(width: dragOffset.width, height: dragOffset.height + edgeScrolled) : .zero)
+                .allowsHitTesting(false)
         }
     }
 
@@ -325,11 +364,10 @@ struct CanvasView: View {
         DragGesture(coordinateSpace: .global)
             .onChanged { value in
                 guard !isPinching else { return }
-                if draggingID == nil {
-                    draggingID = element.id
-                    viewModel.select(element.id)
+                if draggingIDs.isEmpty {
+                    startDrag(of: element)
                 }
-                let snap = snapped(element, translation: value.translation, scale: scale)
+                let snap = snapped(draggingIDs, lead: element, translation: value.translation, scale: scale)
                 dragOffset = snap.offset
                 snapGuides = snap.guides
                 if !element.isPinned {
@@ -340,29 +378,46 @@ struct CanvasView: View {
                 stopEdgeScroll()
                 snapGuides = []
                 // Yakınlaştırma yüzünden iptal edildiyse eleman yerinde kalır
-                guard draggingID == element.id else { return }
+                guard draggingIDs.contains(element.id) else { return }
                 // Tuval point'i → normalize dönüşümü; kenarda kendiliğinden kayılan yol da eklenir
-                let offset = snapped(element, translation: value.translation, scale: scale).offset
+                let offset = snapped(draggingIDs, lead: element, translation: value.translation, scale: scale).offset
                 let dx = offset.width / referenceSize.width
                 let dy = (offset.height + edgeScrolled) / referenceSize.height
                 // Hizaya yapışıp eski yerine döndüyse boş bir geri al adımı oluşmasın
                 if abs(dx) > 1e-6 || abs(dy) > 1e-6 {
-                    viewModel.moveElement(element.id, dx: dx, dy: dy)
+                    viewModel.moveGroup(draggingIDs, dx: dx, dy: dy)
                 }
-                draggingID = nil
+                draggingIDs = []
                 dragOffset = .zero
                 edgeScrolled = 0
             }
     }
 
+    /// Sürükleme başlarken birlikte taşınacak elemanları belirler.
+    /// Normal modda: dokunulan eleman seçilir; kutuysa içindekiler de gelir.
+    /// Toplu modda: seçili bir elemana dokunulduysa bütün seçim, değilse yalnız o eleman (kutuysa içindekilerle).
+    /// Taşınanlar en üste çıkar; böylece grup başkalarının altına kaymaz, kutuya bırakılan eleman kutudan sonra gelir.
+    private func startDrag(of element: CanvasElement) {
+        if viewModel.isMultiSelecting {
+            let start = viewModel.multiSelection.contains(element.id) ? viewModel.multiSelection : [element.id]
+            draggingIDs = viewModel.movingGroup(for: start).union([element.id])
+            viewModel.bringToFront(draggingIDs)
+        } else {
+            viewModel.select(element.id)   // kutu + içindekileri öne getirir
+            draggingIDs = viewModel.movingGroup(for: [element.id]).union([element.id])
+        }
+    }
+
     /// Parmağın kaydırdığı yol (tuval point'i), hizaya yapışma düzeltmesi eklenmiş halde.
-    /// Eşik ekranda sabit kalsın diye yakınlaştırmaya bölünür.
-    private func snapped(_ element: CanvasElement, translation: CGSize, scale: CGFloat) -> SnapResult {
+    /// Grup, bütün elemanlarını saran ortak kutusuyla hizalanır. Eşik ekranda sabit kalsın diye yakınlaştırmaya bölünür.
+    private func snapped(_ ids: Set<UUID>, lead: CanvasElement, translation: CGSize, scale: CGFloat) -> SnapResult {
         let raw = CGSize(width: translation.width / scale, height: translation.height / scale)
-        let rect = snapBox(of: element, layerOf: element).offsetBy(dx: raw.width, dy: raw.height + edgeScrolled)
+        let members = viewModel.screen.elements.filter { ids.contains($0.id) }
+        let union = members.map { snapBox(of: $0, layerOf: lead) }.reduce(snapBox(of: lead, layerOf: lead)) { $0.union($1) }
+        let rect = union.offsetBy(dx: raw.width, dy: raw.height + edgeScrolled)
         // Sol kenar her iki katmanda aynı; çizginin boyu için kutular taşınanın katmanına çevrilir.
-        let targets = viewModel.screen.elements.filter { $0.id != element.id }
-            .map { snapBox(of: $0, layerOf: element) }
+        let targets = viewModel.screen.elements.filter { !ids.contains($0.id) }
+            .map { snapBox(of: $0, layerOf: lead) }
         var snap = SnapGuides.snapMove(rect, targets: targets, pageWidth: referenceSize.width,
                                        tolerance: SnapGuides.threshold / scale)
         snap.offset = CGSize(width: raw.width + snap.offset.width, height: raw.height + snap.offset.height)
@@ -384,7 +439,7 @@ struct CanvasView: View {
     /// Çizgiler taşınan elemanın katmanında hesaplanır; kayan sayfadaysa kaydırma kadar yukarı alınır.
     /// Yeni bir hizaya yapışınca telefon hafifçe titrer.
     private func guidesLayer(scale: CGFloat) -> some View {
-        let mover = viewModel.screen.elements.first { $0.id == draggingID }
+        let mover = viewModel.screen.elements.first { draggingIDs.contains($0.id) }
         let shift = (mover?.isPinned ?? true) ? 0 : viewport.scroll
         let thickness = 1 / scale
 

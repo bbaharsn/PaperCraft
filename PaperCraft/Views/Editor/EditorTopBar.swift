@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-/// Editörün üst barı: sayfalara dönüş, geri al / yinele, katalog butonu ve "Dene" butonu.
+/// Editörün üst barı: sayfalara dönüş, geri al / yinele, toplu seçim, katalog butonu ve "Dene" butonu.
 struct EditorTopBar: View {
     let pageName: String
     /// "‹ Sayfa adı"na basılınca sayfalara dönülür.
@@ -14,6 +14,9 @@ struct EditorTopBar: View {
     var canRedo = false
     var onUndo: () -> Void = {}
     var onRedo: () -> Void = {}
+    /// Toplu seçim modu açık mı? Açıkken düğme dolu görünür.
+    var isMultiSelecting = false
+    var onToggleMultiSelect: () -> Void = {}
     /// [≋] butonuna basılınca ne olacağını dışarıdan alırız.
     let onToggleCatalog: () -> Void
     /// "Dene" butonuna basılınca ne olacağını dışarıdan alırız.
@@ -24,6 +27,7 @@ struct EditorTopBar: View {
             backButton
             Spacer(minLength: 8)
             undoRedoButtons
+            multiSelectButton
             catalogButton
             previewButton
         }
@@ -82,6 +86,21 @@ struct EditorTopBar: View {
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.ink, lineWidth: 1))
     }
 
+    /// Toplu seçim modunu açıp kapatır; açıkken zemin koyu, ikon açık renk.
+    private var multiSelectButton: some View {
+        Button(action: onToggleMultiSelect) {
+            Image(systemName: "square.on.square.dashed")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(isMultiSelecting ? Theme.paper : Theme.ink)
+                .frame(width: 44, height: 44)
+                .background(isMultiSelecting ? Theme.ink : Theme.panel, in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Theme.ink, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Toplu seçim")
+        .accessibilityAddTraits(isMultiSelecting ? .isSelected : [])
+    }
+
     private var catalogButton: some View {
         Button(action: onToggleCatalog) {
             Image(systemName: "square.3.layers.3d")
@@ -106,6 +125,9 @@ struct EditorTopBar: View {
 }
 
 #Preview {
-    EditorTopBar(pageName: "Ana Sayfa", onBack: {}, canUndo: true, onToggleCatalog: {}, onPreview: {})
-        .background(Theme.background)
+    VStack {
+        EditorTopBar(pageName: "Ana Sayfa", onBack: {}, canUndo: true, onToggleCatalog: {}, onPreview: {})
+        EditorTopBar(pageName: "Ana Sayfa", onBack: {}, isMultiSelecting: true, onToggleCatalog: {}, onPreview: {})
+    }
+    .background(Theme.background)
 }

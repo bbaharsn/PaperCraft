@@ -76,11 +76,24 @@ struct EditorView: View {
                 canRedo: viewModel.canRedo,
                 onUndo: { viewModel.undo() },
                 onRedo: { viewModel.redo() },
+                isMultiSelecting: viewModel.isMultiSelecting,
+                onToggleMultiSelect: {
+                    viewModel.toggleMultiSelectMode()
+                    // Toplu seçim açılınca diğer sayfalar kapanır; dokunuşlar seçime gider.
+                    guard viewModel.isMultiSelecting else { return }
+                    wantsProperties = false
+                    isEditingBackground = false
+                    if isCatalogOpen {
+                        withAnimation(.snappy) { isCatalogOpen = false }
+                    }
+                },
                 onToggleCatalog: {
                     // Katalog açılırken Özellikler ya da Arka Plan sayfası açıksa kapanır, üst üste binmesin.
+                    // Toplu seçim de kapanır; yeni eklenen eleman normal tek seçimle seçilsin.
                     if !isCatalogOpen {
                         wantsProperties = false
                         isEditingBackground = false
+                        if viewModel.isMultiSelecting { viewModel.toggleMultiSelectMode() }
                     }
                     withAnimation(.snappy) {
                         isCatalogOpen.toggle()
@@ -108,7 +121,14 @@ struct EditorView: View {
                 .padding()
                 // overlay: canvas'ın boyutunu değiştirmeden üstüne yüzer
                 .overlay(alignment: .bottom) {
-                    if viewModel.selectedElementID != nil {
+                    if viewModel.isMultiSelecting {
+                        if !viewModel.multiSelection.isEmpty {
+                            // Toplu modda çoğaltma yok; Sil seçimdeki her şeyi siler.
+                            SelectionToolbar(onDelete: { viewModel.deleteMultiSelection() })
+                                .padding(.bottom, 32)
+                                .transition(.scale.combined(with: .opacity))
+                        }
+                    } else if viewModel.selectedElementID != nil {
                         SelectionToolbar(
                             onDuplicate: viewModel.canDuplicateSelected ? { viewModel.duplicateSelectedElement() } : nil,
                             onDelete: { viewModel.deleteSelectedElement() }
@@ -118,6 +138,7 @@ struct EditorView: View {
                     }
                 }
                 .animation(.snappy, value: viewModel.selectedElementID)
+                .animation(.snappy, value: viewModel.multiSelection.isEmpty)
                 .animation(.snappy, value: wantsProperties)
                 .sheet(isPresented: $isEditingBackground, onDismiss: resetSheetDetent) {
                     BackgroundPropertiesSheet(viewModel: viewModel)
