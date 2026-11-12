@@ -34,4 +34,30 @@ nonisolated enum BoxContents {
         }
         return result
     }
+
+    /// Bırakılan kutuların altında kalan ve tamamen içlerine düşen elemanları, kutunun hemen üstüne taşır.
+    /// Böylece bir kutu sayfada duran elemanların üstüne sürüklenince onları örtmez, onlar kutunun
+    /// içindekiler olur. Taşınan elemanların kendi aralarındaki sırası korunur.
+    /// - Parameters:
+    ///   - movedIDs: Az önce taşınan elemanlar; bunların arasındaki kutular bakılır, kendileri yer değiştirmez.
+    ///   - rect: elemanın point dikdörtgeni (döndürmesiz), taşınmış yeriyle.
+    static func liftingCovered(by movedIDs: Set<UUID>, in elements: [CanvasElement],
+                               rect: (CanvasElement) -> CGRect) -> [CanvasElement] {
+        var result = elements
+        let boxIDs = elements.filter { movedIDs.contains($0.id) && $0.type == .box && !$0.isPinned }.map(\.id)
+        for boxID in boxIDs {
+            guard let boxIndex = result.firstIndex(where: { $0.id == boxID }) else { continue }
+            let area = rect(result[boxIndex]).insetBy(dx: -tolerance, dy: -tolerance)
+            let covered = result[..<boxIndex].filter { element in
+                guard !element.isPinned, !movedIDs.contains(element.id) else { return false }
+                return area.contains(SnapGuides.boundingBox(rect(element), degrees: element.properties.rotation ?? 0))
+            }
+            guard !covered.isEmpty else { continue }
+            let coveredIDs = Set(covered.map(\.id))
+            result.removeAll { coveredIDs.contains($0.id) }
+            guard let newIndex = result.firstIndex(where: { $0.id == boxID }) else { continue }
+            result.insert(contentsOf: covered, at: newIndex + 1)
+        }
+        return result
+    }
 }

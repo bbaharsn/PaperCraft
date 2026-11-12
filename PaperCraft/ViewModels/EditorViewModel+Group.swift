@@ -66,7 +66,8 @@ extension EditorViewModel {
             elements[index].frame.x += move.dx
             elements[index].frame.y += move.dy
         }
-        screen.elements = elements
+        // Kutu duran elemanların üstüne bırakıldıysa onları örtmesin, içine alsın (aynı geri al adımında)
+        screen.elements = BoxContents.liftingCovered(by: ids, in: elements, rect: pointRect(of:))
     }
 
     /// "Kutuya al": toplu seçimi (kutuların içindekiler dahil) kenarlarında pay bırakarak saran beyaz bir Kutu ekler.

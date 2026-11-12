@@ -144,7 +144,9 @@ final class EditorViewModel {
 
     private func insert(_ element: CanvasElement, centeredAt center: CGPoint?) {
         let newElement = center.map { placed(element, centeredAt: $0) } ?? placedInVisibleArea(element)
-        screen.elements.append(newElement)   // sona eklenen en üstte çizilir
+        // Sona eklenen en üstte çizilir; kutu duran elemanların üstüne geldiyse onları örtmez, içine alır
+        screen.elements = BoxContents.liftingCovered(by: [newElement.id], in: screen.elements + [newElement],
+                                                     rect: pointRect(of:))
         selectedElementID = element.id
     }
 
