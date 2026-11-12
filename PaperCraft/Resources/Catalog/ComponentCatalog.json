@@ -90,7 +90,8 @@
         "cornerRadius": 12,
         "borderWidth": 1,
         "borderColor": "#E5E5EA",
-        "hasShadow": false
+        "hasShadow": false,
+        "matchesPageBackground": false
       },
       "aiAliases": [
         "box",

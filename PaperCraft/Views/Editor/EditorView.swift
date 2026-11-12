@@ -123,8 +123,9 @@ struct EditorView: View {
                 .overlay(alignment: .bottom) {
                     if viewModel.isMultiSelecting {
                         if !viewModel.multiSelection.isEmpty {
-                            // Toplu modda çoğaltma yok; Sil seçimdeki her şeyi siler.
-                            SelectionToolbar(onDelete: { viewModel.deleteMultiSelection() })
+                            // Toplu modda çoğaltma yok; Kutuya al seçilenleri saran kutu ekler, Sil hepsini siler.
+                            SelectionToolbar(onWrap: { viewModel.wrapMultiSelectionInBox() },
+                                             onDelete: { viewModel.deleteMultiSelection() })
                                 .padding(.bottom, 32)
                                 .transition(.scale.combined(with: .opacity))
                         }

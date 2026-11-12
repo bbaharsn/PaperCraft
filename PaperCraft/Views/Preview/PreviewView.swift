@@ -130,6 +130,7 @@ struct PreviewView: View {
                 // tasarım yukarı kayınca elemanlar bunun altından geçer
                 statusBarFill(layout)
             }
+            .pageBackdrop(screen.background, size: layout.stageSize)
             // Sayfa değişince yenisi yandan kayarak gelir
             .id(screen.id)
             .transition(.push(from: pushEdge))
@@ -153,6 +154,7 @@ struct PreviewView: View {
                     elementsLayer(layout, scrolling, scrolling: true)
                 }
                 .frame(width: size.width, height: contentHeight)
+                .pageBackdrop(screen.background, size: CGSize(width: size.width, height: contentHeight))
                 .scaleEffect(layout.scale, anchor: .topLeading)
                 .frame(width: layout.stageSize.width, height: contentHeight * layout.scale, alignment: .topLeading)
                 .onGeometryChange(for: Bool.self) { proxy in

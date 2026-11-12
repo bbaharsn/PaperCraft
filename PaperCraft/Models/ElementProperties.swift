@@ -136,4 +136,7 @@ nonisolated struct ElementProperties: Codable, Equatable {
     var borderColor: String?
     /// Altında hafif bir gölge olsun mu.
     var hasShadow: Bool?
+    /// Kutu, dolgu rengi yerine sayfanın arka planını mı gösterir. Sayfa rengi değişince kutu da değişir;
+    /// gradyanda kutunun yerine düşen parça çizilir. Boşsa `fillColor` kullanılır.
+    var matchesPageBackground: Bool?
 }

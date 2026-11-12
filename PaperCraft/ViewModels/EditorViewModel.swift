@@ -217,7 +217,7 @@ final class EditorViewModel {
 
     /// Referans ekranın boyutu (point). Boyut işlemleri point ile yapılır,
     /// çünkü "200 × 50" gibi değerler kullanıcıya point olarak gösterilir.
-    private var canvasSize: CGSize {
+    var canvasSize: CGSize {
         CGSize(width: catalog.referenceCanvas.width, height: catalog.referenceCanvas.height)
     }
 

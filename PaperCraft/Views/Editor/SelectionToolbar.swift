@@ -5,14 +5,29 @@
 
 import SwiftUI
 
-/// Bir eleman seçiliyken canvas'ın altında beliren işlem butonları: "Çoğalt" ve "Sil".
+/// Bir eleman seçiliyken canvas'ın altında beliren işlem butonları: "Çoğalt" ve "Sil";
+/// toplu seçimde "Kutuya al" ve "Sil".
 struct SelectionToolbar: View {
+    /// `nil` değilse "Kutuya al" gösterilir: seçilenleri saran bir kutu ekler.
+    var onWrap: (() -> Void)? = nil
     /// `nil` ise "Çoğalt" gösterilmez (ör. üst bar ve alt menü çoğaltılmaz).
     var onDuplicate: (() -> Void)? = nil
     let onDelete: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
+            if let onWrap {
+                Button(action: onWrap) {
+                    Label("Kutuya al", systemImage: "square.dashed")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                        .padding(.horizontal, 18)
+                        .frame(height: 40)
+                        .background(Theme.panel, in: Capsule())
+                        .overlay(Capsule().stroke(Theme.ink, lineWidth: 1.5))
+                }
+            }
+
             if let onDuplicate {
                 Button(action: onDuplicate) {
                     Label("Çoğalt", systemImage: "plus.square.on.square")
@@ -43,6 +58,7 @@ struct SelectionToolbar: View {
     VStack(spacing: 20) {
         SelectionToolbar(onDuplicate: {}, onDelete: {})
         SelectionToolbar(onDelete: {})
+        SelectionToolbar(onWrap: {}, onDelete: {})
     }
     .padding()
     .background(Theme.background)

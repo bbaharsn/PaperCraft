@@ -17,13 +17,23 @@ struct BoxElementView: View {
         properties.borderColor.flatMap(Color.init(hexString:)) ?? .gray
     }
 
+    /// Dolgu: seçilen renk ya da "Sayfa arka planıyla aynı" ise sayfanın arka planı.
+    @ViewBuilder
+    private var fillView: some View {
+        if properties.matchesPageBackground ?? false {
+            PageBackdropFill()
+        } else {
+            fill
+        }
+    }
+
     var body: some View {
         let shape = FrameOutline(shape: properties.frameShape ?? .rounded,
                                  cornerRadius: properties.cornerRadius ?? 12)
         let borderWidth = max(properties.borderWidth ?? 1, 0)
 
-        shape
-            .fill(fill)
+        fillView
+            .clipShape(shape)
             .overlay {
                 if borderWidth > 0 {
                     shape.strokeBorder(borderColor, lineWidth: borderWidth)

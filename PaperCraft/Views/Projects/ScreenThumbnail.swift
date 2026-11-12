@@ -49,6 +49,7 @@ struct ScreenThumbnail: View {
             }
             .frame(width: referenceSize.width, height: pageHeight, alignment: .topLeading)
             .background(ScreenBackgroundView(background: screen.background))
+            .pageBackdrop(screen.background, size: CGSize(width: referenceSize.width, height: pageHeight))
             .frame(width: referenceSize.width, height: shownHeight, alignment: .top)
             .clipped()
             .mask {

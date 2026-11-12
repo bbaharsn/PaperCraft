@@ -35,10 +35,31 @@ struct CanvasView: View {
 
     /// İki parmakla yakınlaştırma ve kaydırma durumu.
     @State private var viewport = CanvasViewport()
-    /// Yakınlaştırma ya da kaydırma başladığındaki durum; hareket buna göre hesaplanır.
+    /// Tek parmakla boş yerde kaydırma başladığındaki durum; hareket buna göre hesaplanır.
     @State private var gestureStart: CanvasViewport?
-    /// İki parmak ekrandayken eleman taşınmasın.
-    @State private var isPinching = false
+
+    /// İki parmaklı hareket (yakınlaştırma ve/veya kaydırma). İkisi aynı anda olabilir; ikisi de
+    /// `twoFingerStart`'tan hesaplanır. Biri ortada başlarsa başlangıç o anki duruma taşınır (`magBase`, `panBase`).
+    @State private var twoFingerStart: CanvasViewport?
+    @State private var isMagnifying = false
+    @State private var isTwoFingerPanning = false
+    @State private var pinchMagnification: CGFloat = 1
+    @State private var pinchAnchor: CGPoint = .zero
+    @State private var twoFingerTranslation: CGSize = .zero
+    @State private var magBase: CGFloat = 1
+    @State private var panBase: CGSize = .zero
+    /// İki parmak gelince yarıda kesilen tek parmaklı hareket, parmak kalkana kadar yeniden başlamasın.
+    @State private var oneFingerCancelled = false
+    /// İki parmak ekrandayken eleman taşınmasın, çerçeve çizilmesin.
+    private var isPinching: Bool { isMagnifying || isTwoFingerPanning }
+
+    /// Toplu seçimde boş yerden çizilen seçim çerçevesi: başladığı nokta (sayfa point'i), parmağın
+    /// son yeri (ekran point'i) ve çerçeve başlamadan önceki seçim.
+    @State private var marqueeStart: CGPoint?
+    @State private var marqueeFinger: CGPoint = .zero
+    @State private var marqueeBase: Set<UUID> = []
+    /// Seçimi saran çerçevenin boş bir yerinden tutulup taşınan grubun öncü elemanı.
+    @State private var groupDragLead: CanvasElement?
 
     /// Kartın ve canvas alanının ekrandaki yeri; sürüklenen eleman kenara gelince sayfayı kaydırmak için.
     @State private var cardFrame: CGRect = .zero
@@ -77,7 +98,26 @@ struct CanvasView: View {
                 .contentShape(Rectangle())
                 // Elemanların kendi taşıma hareketi önce gelir; boş yerde sürüklemek sayfayı (büyütülmüşse önce kartı) kaydırır.
                 .gesture(panGesture(cardSize: fittedCard, available: available, scale: scale))
-                .simultaneousGesture(pinchGesture(cardSize: fittedCard, available: available))
+                .simultaneousGesture(pinchGesture(cardSize: fittedCard, available: available, fitted: fitted))
+                #if os(iOS)
+                .background {
+                    TwoFingerPan { translation in
+                        if !isTwoFingerPanning {
+                            if !isPinching { cancelOneFingerGestures() }
+                            isTwoFingerPanning = true
+                            if !isMagnifying { pinchMagnification = 1 }
+                            twoFingerStart = viewport
+                            magBase = pinchMagnification
+                            panBase = .zero
+                        }
+                        twoFingerTranslation = translation
+                        updateTwoFinger(cardSize: fittedCard, available: available, fitted: fitted)
+                    } onEnded: {
+                        isTwoFingerPanning = false
+                        finishTwoFingerIfDone()
+                    }
+                }
+                #endif
                 .overlay(alignment: .topTrailing) {
                     if viewport.isZoomed { zoomBadge }
                 }
@@ -88,6 +128,8 @@ struct CanvasView: View {
         // Katalogdan eklenen eleman o an görünen alana gelsin
         .onChange(of: viewport.scroll, initial: true) { _, scroll in
             viewModel.visibleTop = scroll / referenceSize.height
+            // Çerçeve çizerken sayfa kenarda kendiliğinden kayınca çerçeve de uzar
+            updateMarqueeSelection()
         }
         .onChange(of: CanvasMapping(area: areaFrame, viewport: viewport), initial: true) { _, mapping in
             onMappingChange(mapping)
@@ -117,6 +159,10 @@ struct CanvasView: View {
                     .frame(width: referenceSize.width, height: scrollableHeight)
                 groupOutlineLayer(scale: scale)
                     .frame(width: referenceSize.width, height: scrollableHeight, alignment: .topLeading)
+                if let rect = marqueeRect {
+                    SelectionMarquee(rect: rect, scale: scale)
+                        .frame(width: referenceSize.width, height: scrollableHeight, alignment: .topLeading)
+                }
                 if contentHeight > 1 {
                     PageEndLine(scale: scale)
                         .frame(width: referenceSize.width)
@@ -124,6 +170,9 @@ struct CanvasView: View {
                 }
             }
             .frame(width: referenceSize.width, height: scrollableHeight, alignment: .topLeading)
+            // "Sayfa arka planıyla aynı" kutular gradyanın kendi yerine düşen parçasını çizer
+            .pageBackdrop(viewModel.screen.background,
+                          size: CGSize(width: referenceSize.width, height: CGFloat(contentHeight) * referenceSize.height))
             .offset(y: -viewport.scroll)
 
             // Sabit üst bar ve alt menü kaymaz; içerik altından geçer.
@@ -184,6 +233,69 @@ struct CanvasView: View {
             }
             onBackgroundTap()
         })
+        // Toplu seçimde boş yerden sürüklemek seçim çerçevesi çizer (sayfayı iki parmakla kaydırmak serbest).
+        .gesture(marqueeGesture, including: viewModel.isMultiSelecting ? .all : .none)
+    }
+
+    /// Seçim çerçevesi: başlangıçtan parmağın şu anki yerine (sayfa point'i). Çizilmiyorsa nil.
+    private var marqueeRect: CGRect? {
+        guard let start = marqueeStart else { return nil }
+        let end = pagePoint(fromGlobal: marqueeFinger)
+        return CGRect(x: min(start.x, end.x), y: min(start.y, end.y),
+                      width: abs(end.x - start.x), height: abs(end.y - start.y))
+    }
+
+    /// Ekran noktası → kayan sayfadaki nokta (tuval point'i, kaydırma dahil).
+    private func pagePoint(fromGlobal point: CGPoint) -> CGPoint {
+        let scale = cardFrame.width / referenceSize.width
+        guard scale > 0 else { return .zero }
+        return CGPoint(x: (point.x - cardFrame.minX) / scale,
+                       y: (point.y - cardFrame.minY) / scale + viewport.scroll)
+    }
+
+    private var marqueeGesture: some Gesture {
+        DragGesture(minimumDistance: 10, coordinateSpace: .global)
+            .onChanged { value in
+                guard !isPinching, !oneFingerCancelled else { return }
+                let scale = cardFrame.width / referenceSize.width
+                // Seçimi saran çerçevenin içinden tutulduysa çerçeve çizilmez, bütün seçim taşınır
+                if let lead = groupDragLead {
+                    dragChanged(lead: lead, translation: value.translation, fingerY: value.location.y, scale: scale)
+                    return
+                }
+                if marqueeStart == nil {
+                    let start = pagePoint(fromGlobal: value.startLocation)
+                    if let rect = multiSelectionRect, rect.contains(start),
+                       let lead = viewModel.screen.elements.first(where: {
+                           viewModel.multiSelection.contains($0.id) && !$0.isPinned
+                       }) {
+                        groupDragLead = lead
+                        dragChanged(lead: lead, translation: value.translation, fingerY: value.location.y, scale: scale)
+                        return
+                    }
+                    marqueeStart = start
+                    marqueeBase = viewModel.multiSelection
+                }
+                marqueeFinger = value.location
+                updateMarqueeSelection()
+                updateEdgeScroll(fingerY: value.location.y)
+            }
+            .onEnded { value in
+                if let lead = groupDragLead {
+                    dragEnded(lead: lead, translation: value.translation,
+                              scale: cardFrame.width / referenceSize.width)
+                    groupDragLead = nil
+                }
+                stopEdgeScroll()
+                edgeScrolled = 0
+                marqueeStart = nil
+                oneFingerCancelled = false
+            }
+    }
+
+    private func updateMarqueeSelection() {
+        guard let rect = marqueeRect else { return }
+        viewModel.selectInMarquee(rect, adding: marqueeBase)
     }
 
     /// Yakınlaştırılmışken sağ üstte görünen oran; dokununca kart yeniden alana sığar (kaydırma yerinde kalır).
@@ -204,44 +316,81 @@ struct CanvasView: View {
     }
 
     /// İki parmakla yakınlaştırma (Mac'te trackpad'de kıstırma).
-    private func pinchGesture(cardSize: CGSize, available: CGSize) -> some Gesture {
+    private func pinchGesture(cardSize: CGSize, available: CGSize, fitted: CGFloat) -> some Gesture {
         MagnifyGesture()
             .onChanged { value in
-                if gestureStart == nil {
-                    gestureStart = viewport
-                    isPinching = true
-                    // İlk parmakla başlamış bir eleman taşıması iptal olur, eleman yerine döner.
-                    draggingIDs = []
-                    dragOffset = .zero
-                    snapGuides = []
+                if !isMagnifying {
+                    if !isPinching { cancelOneFingerGestures() }
+                    isMagnifying = true
+                    pinchMagnification = 1
+                    pinchAnchor = CGPoint(x: value.startLocation.x - available.width / 2,
+                                          y: value.startLocation.y - available.height / 2)
+                    twoFingerStart = viewport
+                    magBase = 1
+                    panBase = isTwoFingerPanning ? twoFingerTranslation : .zero
                 }
-                guard let start = gestureStart else { return }
-                let anchor = CGPoint(x: value.startLocation.x - available.width / 2,
-                                     y: value.startLocation.y - available.height / 2)
-                viewport = .pinched(from: start, magnification: value.magnification, anchor: anchor,
-                                    cardSize: cardSize, available: available)
+                pinchMagnification = value.magnification
+                updateTwoFinger(cardSize: cardSize, available: available, fitted: fitted)
             }
             .onEnded { _ in
-                gestureStart = nil
-                isPinching = false
-                if !viewport.isZoomed {
-                    withAnimation(.snappy) { viewport = CanvasViewport(scroll: viewport.scroll) }
-                }
+                isMagnifying = false
+                finishTwoFingerIfDone()
             }
+    }
+
+    /// İki parmaklı hareketin o anki hali: önce yakınlaştırma (parmakların arası sabit kalır), sonra kaydırma.
+    private func updateTwoFinger(cardSize: CGSize, available: CGSize, fitted: CGFloat) {
+        guard let start = twoFingerStart else { return }
+        let pinched = CanvasViewport.pinched(from: start, magnification: pinchMagnification / magBase,
+                                             anchor: pinchAnchor, cardSize: cardSize, available: available)
+        let move = CGSize(width: twoFingerTranslation.width - panBase.width,
+                          height: twoFingerTranslation.height - panBase.height)
+        viewport = .dragged(from: pinched, by: move, cardSize: cardSize, available: available,
+                            scale: fitted * pinched.zoom, contentHeight: contentHeight)
+    }
+
+    /// İki parmak da kalkınca hareket biter; sığdığından küçükse kart yerine oturur.
+    private func finishTwoFingerIfDone() {
+        guard !isPinching else { return }
+        twoFingerStart = nil
+        twoFingerTranslation = .zero
+        if !viewport.isZoomed {
+            withAnimation(.snappy) { viewport = CanvasViewport(scroll: viewport.scroll) }
+        }
+    }
+
+    /// İkinci parmak gelince tek parmaklı hareketler iptal olur: taşınan eleman yerine döner,
+    /// çizilen çerçeve kaybolur ve seçim çerçeveden önceki haline döner.
+    private func cancelOneFingerGestures() {
+        if gestureStart != nil || marqueeStart != nil || !draggingIDs.isEmpty || groupDragLead != nil {
+            oneFingerCancelled = true
+        }
+        gestureStart = nil
+        groupDragLead = nil
+        draggingIDs = []
+        dragOffset = .zero
+        snapGuides = []
+        stopEdgeScroll()
+        edgeScrolled = 0
+        if marqueeStart != nil {
+            viewModel.multiSelection = marqueeBase
+            marqueeStart = nil
+        }
     }
 
     /// Boş bir yerde sürükleyince sayfa kayar; büyütülmüşse önce kart kendi sınırına kadar kayar.
     private func panGesture(cardSize: CGSize, available: CGSize, scale: CGFloat) -> some Gesture {
         DragGesture(minimumDistance: 10)
             .onChanged { value in
-                guard !isPinching else { return }
+                guard !isPinching, !oneFingerCancelled else { return }
                 if gestureStart == nil { gestureStart = viewport }
                 guard let start = gestureStart else { return }
                 viewport = .dragged(from: start, by: value.translation, cardSize: cardSize, available: available,
                                     scale: scale, contentHeight: contentHeight)
             }
             .onEnded { _ in
-                if !isPinching { gestureStart = nil }
+                gestureStart = nil
+                oneFingerCancelled = false
             }
     }
 
@@ -335,17 +484,21 @@ struct CanvasView: View {
     /// Sabit barlar toplu seçime girmediği için kayan sayfa katmanında çizilir.
     @ViewBuilder
     private func groupOutlineLayer(scale: CGFloat) -> some View {
-        let members = viewModel.screen.elements.filter { viewModel.multiSelection.contains($0.id) && !$0.isPinned }
-        if viewModel.isMultiSelecting, let first = members.first {
-            let box = { (e: CanvasElement) in
-                SnapGuides.boundingBox(viewModel.pointRect(of: e), degrees: e.properties.rotation ?? 0)
-            }
-            let rect = members.dropFirst().reduce(box(first)) { $0.union(box($1)) }
+        if let rect = multiSelectionRect {
             let isMoving = !draggingIDs.isEmpty && viewModel.multiSelection.isSubset(of: draggingIDs)
             GroupOutline(rect: rect, scale: scale)
                 .offset(isMoving ? CGSize(width: dragOffset.width, height: dragOffset.height + edgeScrolled) : .zero)
                 .allowsHitTesting(false)
         }
+    }
+
+    /// Toplu seçimdeki elemanları saran ortak kutu (sayfa point'i); seçim yoksa nil.
+    private var multiSelectionRect: CGRect? {
+        guard viewModel.isMultiSelecting else { return nil }
+        return viewModel.screen.elements
+            .filter { viewModel.multiSelection.contains($0.id) && !$0.isPinned }
+            .map { SnapGuides.boundingBox(viewModel.pointRect(of: $0), degrees: $0.properties.rotation ?? 0) }
+            .reduce(nil) { $0?.union($1) ?? $1 }
     }
 
     /// Kartın sol üstüne yapıştırılmış sarı bant.
@@ -363,34 +516,46 @@ struct CanvasView: View {
     private func dragGesture(for element: CanvasElement, scale: CGFloat) -> some Gesture {
         DragGesture(coordinateSpace: .global)
             .onChanged { value in
-                guard !isPinching else { return }
-                if draggingIDs.isEmpty {
-                    startDrag(of: element)
-                }
-                let snap = snapped(draggingIDs, lead: element, translation: value.translation, scale: scale)
-                dragOffset = snap.offset
-                snapGuides = snap.guides
-                if !element.isPinned {
-                    updateEdgeScroll(fingerY: value.location.y)
-                }
+                guard !isPinching, !oneFingerCancelled else { return }
+                dragChanged(lead: element, translation: value.translation, fingerY: value.location.y, scale: scale)
             }
             .onEnded { value in
-                stopEdgeScroll()
-                snapGuides = []
-                // Yakınlaştırma yüzünden iptal edildiyse eleman yerinde kalır
-                guard draggingIDs.contains(element.id) else { return }
-                // Tuval point'i → normalize dönüşümü; kenarda kendiliğinden kayılan yol da eklenir
-                let offset = snapped(draggingIDs, lead: element, translation: value.translation, scale: scale).offset
-                let dx = offset.width / referenceSize.width
-                let dy = (offset.height + edgeScrolled) / referenceSize.height
-                // Hizaya yapışıp eski yerine döndüyse boş bir geri al adımı oluşmasın
-                if abs(dx) > 1e-6 || abs(dy) > 1e-6 {
-                    viewModel.moveGroup(draggingIDs, dx: dx, dy: dy)
-                }
-                draggingIDs = []
-                dragOffset = .zero
-                edgeScrolled = 0
+                oneFingerCancelled = false
+                dragEnded(lead: element, translation: value.translation, scale: scale)
             }
+    }
+
+    /// Sürükleme sürerken: ilk adımda taşınacakları belirler, sonra görüntüyü hizaya yapıştırarak kaydırır.
+    /// `lead`, parmağın tuttuğu eleman (seçim çerçevesinin içinden tutulduysa seçimdeki ilk eleman).
+    private func dragChanged(lead: CanvasElement, translation: CGSize, fingerY: CGFloat, scale: CGFloat) {
+        if draggingIDs.isEmpty {
+            startDrag(of: lead)
+        }
+        let snap = snapped(draggingIDs, lead: lead, translation: translation, scale: scale)
+        dragOffset = snap.offset
+        snapGuides = snap.guides
+        if !lead.isPinned {
+            updateEdgeScroll(fingerY: fingerY)
+        }
+    }
+
+    /// Sürükleme bitince modeli tek seferde günceller (tek geri al adımı).
+    private func dragEnded(lead: CanvasElement, translation: CGSize, scale: CGFloat) {
+        stopEdgeScroll()
+        snapGuides = []
+        // Yakınlaştırma yüzünden iptal edildiyse eleman yerinde kalır
+        guard draggingIDs.contains(lead.id) else { return }
+        // Tuval point'i → normalize dönüşümü; kenarda kendiliğinden kayılan yol da eklenir
+        let offset = snapped(draggingIDs, lead: lead, translation: translation, scale: scale).offset
+        let dx = offset.width / referenceSize.width
+        let dy = (offset.height + edgeScrolled) / referenceSize.height
+        // Hizaya yapışıp eski yerine döndüyse boş bir geri al adımı oluşmasın
+        if abs(dx) > 1e-6 || abs(dy) > 1e-6 {
+            viewModel.moveGroup(draggingIDs, dx: dx, dy: dy)
+        }
+        draggingIDs = []
+        dragOffset = .zero
+        edgeScrolled = 0
     }
 
     /// Sürükleme başlarken birlikte taşınacak elemanları belirler.

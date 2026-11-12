@@ -19,8 +19,18 @@ struct BoxPropertiesSheet: View {
     }
 
     var body: some View {
-        Section("Renk") {
-            ColorSwatchRow(hex: viewModel.binding(\.fillColor, default: "#FFFFFF"), presets: fillPresets)
+        Section {
+            BoolPicker(isOn: viewModel.binding(\.matchesPageBackground, default: false),
+                       off: "Seçilen renk", on: "Sayfa arka planı")
+            if !(properties.matchesPageBackground ?? false) {
+                ColorSwatchRow(hex: viewModel.binding(\.fillColor, default: "#FFFFFF"), presets: fillPresets)
+            }
+        } header: {
+            Text("Renk")
+        } footer: {
+            if properties.matchesPageBackground ?? false {
+                Text("Kutu sayfanın arka planıyla aynı görünür; arka plan değişince kutu da değişir.")
+            }
         }
 
         SizeSection(viewModel: viewModel)

@@ -3,6 +3,7 @@
 //  PaperCraft
 //
 
+import CoreGraphics
 import Foundation
 
 /// Toplu seçim ve birlikte taşınan elemanlar (kutu + içindekiler, toplu seçim).
@@ -27,6 +28,15 @@ extension EditorViewModel {
 
     func clearMultiSelection() {
         multiSelection = []
+    }
+
+    /// Seçim çerçevesi çizilirken seçimi günceller: çerçeve başlamadan önceki seçim (`base`) korunur,
+    /// çerçevenin tamamen içine giren elemanlar eklenir. Çerçeve küçülünce çıkan eleman seçimden düşer.
+    /// - Parameter marquee: sayfa point'iyle çerçeve.
+    func selectInMarquee(_ marquee: CGRect, adding base: Set<UUID>) {
+        let hits = MarqueeSelection.ids(in: marquee, elements: screen.elements, rect: pointRect(of:))
+        let updated = base.union(hits)
+        if updated != multiSelection { multiSelection = updated }
     }
 
     /// Verilen elemanlar taşınınca birlikte gelecek olanlar: kendileri ve içlerindeki kutuların içindekiler.
@@ -57,6 +67,34 @@ extension EditorViewModel {
             elements[index].frame.y += move.dy
         }
         screen.elements = elements
+    }
+
+    /// "Kutuya al": toplu seçimi (kutuların içindekiler dahil) kenarlarında pay bırakarak saran beyaz bir Kutu ekler.
+    /// Kutu seçilenlerin hemen arkasına konur, seçilenler en üste çıkar; böylece hepsi kutunun içindekiler sayılır
+    /// ve kutuyla birlikte taşınır. Tek geri al adımıdır. Sonra toplu mod kapanır ve yeni kutu seçilir.
+    @discardableResult
+    func wrapMultiSelectionInBox(padding: CGFloat = 16) -> UUID? {
+        let group = movingGroup(for: multiSelection)
+        let members = screen.elements.filter { group.contains($0.id) }
+        guard !members.isEmpty, var box = catalog.makeElement(of: .box) else { return nil }
+
+        let union = members
+            .map { SnapGuides.boundingBox(pointRect(of: $0), degrees: $0.properties.rotation ?? 0) }
+            .reduce(CGRect.null) { $0.union($1) }
+            .insetBy(dx: -padding, dy: -padding)
+        // Sayfanın yanlarından ve üstünden taşmasın
+        let minX = max(union.minX, 0), maxX = min(union.maxX, canvasSize.width), minY = max(union.minY, 0)
+        box.frame = NormalizedFrame(x: minX / canvasSize.width, y: minY / canvasSize.height,
+                                    width: (maxX - minX) / canvasSize.width,
+                                    height: (union.maxY - minY) / canvasSize.height)
+        box.properties.fillColor = "#FFFFFF"
+
+        let rest = screen.elements.filter { !group.contains($0.id) }
+        screen.elements = rest + [box] + members
+        isMultiSelecting = false
+        multiSelection = []
+        selectedElementID = box.id
+        return box.id
     }
 
     /// Toplu seçimdeki her şeyi (kutuların içindekiler dahil) tek geri al adımında siler.
