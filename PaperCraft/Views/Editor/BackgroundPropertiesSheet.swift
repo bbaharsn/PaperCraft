@@ -8,6 +8,8 @@ import SwiftUI
 /// Sayfanın arka planını değiştiren alttan açılan sayfa: düz renk ya da iki veya üç renkli geçiş.
 struct BackgroundPropertiesSheet: View {
     let viewModel: EditorViewModel
+    /// Verilirse "Bitti" bunu çağırır (iPad'deki sabit panel); verilmezse sayfayı kapatır.
+    var onDone: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
 
@@ -20,7 +22,28 @@ struct BackgroundPropertiesSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        if let onDone {
+            // iPad paneli: editörün gezinme yığınının içinde, kendi NavigationStack'i olmadan.
+            PanelHeaderStack(title: "Arka Plan", onDone: onDone) {
+                form
+            }
+        } else {
+            NavigationStack {
+                form
+                    .navigationTitle("Arka Plan")
+                    #if os(iOS)
+                    .navigationBarTitleDisplayMode(.inline)
+                    #endif
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Bitti") { dismiss() }
+                        }
+                    }
+            }
+        }
+    }
+
+    private var form: some View {
             Form {
                 Section("Tür") {
                     OptionPicker(selection: viewModel.backgroundBinding(\.kind), title: \.title)
@@ -48,16 +71,6 @@ struct BackgroundPropertiesSheet: View {
             }
             .scrollContentBackground(.hidden)
             .background(Theme.panel)
-            .navigationTitle("Arka Plan")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Bitti") { dismiss() }
-                }
-            }
-        }
     }
 }
 

@@ -5,7 +5,7 @@
 
 import CoreGraphics
 
-/// Referans tuvali (393×852) o anki telefona yerleştirir.
+/// Projenin tuvalini (iPhone 393×852, iPad 820×1180) o anki ekrana yerleştirir.
 /// Eleman boyutları genişliğe göre ölçeklenir; dikey konumlar durum çubuğunun altındaki
 /// alana yayılır. Böylece üst bar güvenli alanın hemen altına, alt menü en alta oturur.
 nonisolated struct PreviewLayout {
@@ -13,8 +13,8 @@ nonisolated struct PreviewLayout {
     let stageSize: CGSize
     /// Durum çubuğu / çentik yüksekliği (ekran point'i).
     let topInset: CGFloat
-
-    private var reference: CGSize { CanvasView.referenceSize }
+    /// Projenin tuvali (point); verilmezse iPhone.
+    var reference: CGSize = CanvasMapping.referenceSize
 
     /// Gerçek boyutta çizilen tasarımın ekrana büyütülme oranı.
     var scale: CGFloat { stageSize.width / reference.width }
@@ -56,8 +56,9 @@ nonisolated struct PreviewLayout {
         return max(0, min(needed, elementTop - topInset - margin))
     }
 
-    /// Telefonlardan geniş ekranlarda (iPad, Mac) tasarım telefon oranında kalır.
-    static func stageWidth(for screen: CGSize) -> CGFloat {
-        min(screen.width, screen.height * 0.6)
+    /// Geniş ekranlarda (iPad, Mac) tasarım kendi cihazının oranında kalır.
+    /// iPhone tuvali en fazla 0,6 oranına kadar genişler; iPad tuvali kendi oranında durur.
+    static func stageWidth(for screen: CGSize, reference: CGSize = CanvasMapping.referenceSize) -> CGFloat {
+        min(screen.width, screen.height * max(0.6, reference.width / reference.height))
     }
 }

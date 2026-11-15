@@ -32,6 +32,15 @@ nonisolated struct ComponentCatalog: Decodable {
         components: []
     )
 
+    /// Aynı katalog, verilen cihazın tuvaline göre. Varsayılan boyutlar point olarak kalır;
+    /// yeni elemanın normalize boyutu bu tuvale oranlanır.
+    func sized(for device: DeviceKind) -> ComponentCatalog {
+        let size = device.canvasSize
+        return ComponentCatalog(schemaVersion: schemaVersion,
+                                referenceCanvas: CatalogSize(width: size.width, height: size.height),
+                                components: components)
+    }
+
     /// Kategoriler, JSON'daki ilk görünme sırasıyla ve tekrarsız: ["Temel", "Form", ...]
     var categories: [String] {
         var result: [String] = []

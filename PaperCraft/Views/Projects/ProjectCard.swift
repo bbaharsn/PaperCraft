@@ -11,7 +11,8 @@ struct ProjectCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ScreenThumbnail(screen: project.firstScreen, maxScreens: 1)
+            ScreenThumbnail(screen: project.firstScreen, maxScreens: 1,
+                            referenceSize: project.device.canvasSize)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.cornerRadius))
                 .paperCard()
 

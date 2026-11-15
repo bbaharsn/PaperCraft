@@ -14,19 +14,28 @@ final class Project {
     var createdAt = Date.now
     /// Son değişiklik zamanı; Projelerim'de en son düzenlenen en üstte görünür.
     var updatedAt = Date.now
+    /// `DeviceKind`'ın ham değeri. Eski projelerde bu alan yok; varsayılan iPhone olarak açılırlar.
+    var deviceRaw: String = DeviceKind.iPhone.rawValue
     /// Proje silinince ekranları da silinir.
     @Relationship(deleteRule: .cascade, inverse: \ScreenRecord.project)
     var screens: [ScreenRecord]? = []
 
-    init(name: String) {
+    init(name: String, device: DeviceKind = .iPhone) {
         self.name = name
+        self.deviceRaw = device.rawValue
+    }
+
+    /// Projenin tasarlandığı cihaz. Tanınmayan değer iPhone sayılır.
+    var device: DeviceKind {
+        DeviceKind(rawValue: deviceRaw) ?? .iPhone
     }
 
     /// Yeni bir projeyi tek ekranıyla birlikte veritabanına ekler.
     /// İlişki, proje veritabanına eklendikten sonra kurulur (SwiftData bunu ister).
     @discardableResult
-    static func create(name: String, screen: PrototypeScreen, in context: ModelContext) -> Project {
-        let project = Project(name: name)
+    static func create(name: String, device: DeviceKind = .iPhone, screen: PrototypeScreen,
+                       in context: ModelContext) -> Project {
+        let project = Project(name: name, device: device)
         context.insert(project)
         project.screens?.append(ScreenRecord(screen: screen, order: 0))
         return project

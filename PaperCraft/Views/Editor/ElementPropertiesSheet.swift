@@ -9,6 +9,8 @@ import SwiftUI
 /// seçili elemanın türüne göre doğru içerik.
 struct ElementPropertiesSheet: View {
     let viewModel: EditorViewModel
+    /// Verilirse "Bitti" bunu çağırır (iPad'deki sabit panel); verilmezse sayfayı kapatır.
+    var onDone: (() -> Void)? = nil
 
     /// "Bitti" sadece sayfayı kapatır; eleman seçili kalır.
     @Environment(\.dismiss) private var dismiss
@@ -24,22 +26,34 @@ struct ElementPropertiesSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                content
+        if let onDone {
+            // iPad paneli editörün kendi gezinme yığınının içinde durur; içine ikinci bir
+            // NavigationStack koymak editörü kapatıyor. Başlık ve "Bitti" elle çizilir.
+            PanelHeaderStack(title: title, onDone: onDone) {
+                form
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.panel)
-            .navigationTitle(title)
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Bitti") { dismiss() }
-                }
+        } else {
+            NavigationStack {
+                form
+                    .navigationTitle(title)
+                    #if os(iOS)
+                    .navigationBarTitleDisplayMode(.inline)
+                    #endif
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Bitti") { dismiss() }
+                        }
+                    }
             }
         }
+    }
+
+    private var form: some View {
+        Form {
+            content
+        }
+        .scrollContentBackground(.hidden)
+        .background(Theme.panel)
     }
 
     @ViewBuilder

@@ -49,6 +49,7 @@ struct ProjectPagesView: View {
             if isPreviewing, let first = project.previewScreens.first {
                 PreviewView(screens: project.previewScreens,
                             startID: first.id,
+                            canvasSize: project.device.canvasSize,
                             cardFrame: firstCardFrame,
                             onClose: { isPreviewing = false })
             }
@@ -109,7 +110,7 @@ struct ProjectPagesView: View {
         let isFirst = record == project.sortedScreens.first
         return Button { onOpen(record) } label: {
             VStack(alignment: .leading, spacing: 8) {
-                ScreenThumbnail(screen: screen)
+                ScreenThumbnail(screen: screen, referenceSize: project.device.canvasSize)
                     .clipShape(RoundedRectangle(cornerRadius: Theme.cornerRadius))
                     .paperCard()
                     .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: {
@@ -143,7 +144,7 @@ struct ProjectPagesView: View {
             VStack(alignment: .leading, spacing: 8) {
                 RoundedRectangle(cornerRadius: Theme.cornerRadius)
                     .strokeBorder(Theme.ink.opacity(0.5), style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
-                    .aspectRatio(CanvasView.referenceSize.width / CanvasView.referenceSize.height, contentMode: .fit)
+                    .aspectRatio(project.device.canvasSize.width / project.device.canvasSize.height, contentMode: .fit)
                     .overlay {
                         Image(systemName: "plus")
                             .font(.system(size: 32, weight: .medium))

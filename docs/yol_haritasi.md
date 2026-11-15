@@ -155,9 +155,11 @@ Bu analizden çıkan eksikler (önem sırasıyla):
 ---
 
 ## Phase 5: iPad Düzenleri (Regular Layout)
-> **Amaç:** Aynı özellikleri iPad'in geniş ekranına uygun düzenlerle sunmak.
+> **Amaç:** Aynı özellikleri iPad'in geniş ekranına uygun düzenlerle sunmak. iPad'de hem iPhone hem iPad uygulaması tasarlanabilir.
 
-- [ ] **Çok Sütunlu Düzen:** Sol menü (projeler/ekranlar), orta alan (Canvas), sağ panel (`.inspector`).
+- [ ] **iPad Tuvali (Proje Cihaz Türü):** Her proje iPhone (393×852) ya da iPad (820×1180, dikey) için. *(Kısmen: `DeviceKind` ve `Project.device` var; canvas, önizleme, küçük resimler ve katalogdan eklenen eleman boyutu projenin cihazına göre. Eski projeler iPhone açılır. Eksik: yeni proje oluştururken cihaz seçimi ve Projelerim'de cihaz etiketi; nav bar / tab bar ve katalog varsayılanlarının iPad genişliğine uyarlanması; sayfa sonu boşluğu (`endMargin`) iPhone yüksekliğine göre; yatay iPad tuvali.)*
+
+- [ ] **Çok Sütunlu Düzen:** Sol menü (projeler/ekranlar), orta alan (Canvas), sağ panel (`.inspector`). *(Kısmen: editörde regular genişlikte solda sabit katalog (`CatalogSidebar`, kart sağa çekilerek sürüklenir), ortada canvas, sağda Özellikler / Arka Plan paneli; panel seçimle açılır, "Bitti" kapatır. Dikey iPad'de Özellikler açılınca katalog gizlenir. Panel editörün gezinme yığınında olduğu için kendi NavigationStack'i yok (`PanelHeaderStack`); iç içe yığın editörü kapatıyordu. Eksik: panelde font listesi ve sekme düzenleme gibi `NavigationLink` ekranları tüm ekrana açılıyor; Projelerim ve Sayfalar ekranları hâlâ iPhone düzeninde; Mac iPhone düzeninde.)*
 - [ ] **Size Class Mantığı:** Yalnızca `@Environment(\.horizontalSizeClass)` kullanılır (`UIDevice` macOS'ta derlenmediği için kullanılmaz). Regular'da sabit panel, Compact'ta alt panel.
 - [ ] **Split View / Stage Manager Testi:** Pencere daraldığında iPhone düzenine geçiş; seçili eleman ve açık panel durumu kaybolmamalı (durum ViewModel'de tutulur).
 - [ ] **Donanım Klavyesi:** Temel kısayollar (Sil, ⌘Z, ⌘⇧Z, ⌘D) — Mac ile ortak kullanılır. *(Kısmen: ⌘Z, ⌘⇧Z, ⌘D ve Projelerim'de ⌘N var. Eksik: Sil tuşu.)*

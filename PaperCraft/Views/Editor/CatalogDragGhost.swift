@@ -13,11 +13,12 @@ struct CatalogDragGhost: View {
     let location: CGPoint
     /// Ekran point'inin tuval point'ine oranı; eleman canvas'taki boyunda görünsün.
     let scale: CGFloat
+    /// Tuvalin gerçek boyutu (point); projenin cihazına göre.
+    var canvasSize: CGSize = CanvasMapping.referenceSize
 
     var body: some View {
-        let reference = CanvasMapping.referenceSize
-        let size = CGSize(width: element.frame.width * reference.width,
-                          height: element.frame.height * reference.height)
+        let size = CGSize(width: element.frame.width * canvasSize.width,
+                          height: element.frame.height * canvasSize.height)
 
         GeometryReader { proxy in
             let origin = proxy.frame(in: .global).origin

@@ -8,8 +8,8 @@ import SwiftUI
 /// Bir ekranın elemanlarını, kağıt görünümlü bir tuval üzerinde gerçek konumlarına yerleştirir.
 /// Elemanlar dokunarak seçilir ve sürüklenerek taşınır.
 ///
-/// Tuval her zaman gerçek iPhone boyutunda (393×852) çizilir, sonra ekrana sığacak kadar
-/// küçültülür. Böylece yazılar dahil her şey orantılı küçülür.
+/// Tuval her zaman projenin cihazının gerçek boyutunda (iPhone 393×852, iPad 820×1180) çizilir,
+/// sonra ekrana sığacak kadar küçültülür. Böylece yazılar dahil her şey orantılı küçülür.
 struct CanvasView: View {
     let viewModel: EditorViewModel
     /// Bir elemana çift dokunulunca ya da basılı tutulunca (seçildikten sonra) çağrılır; ör. Özellikler sayfasını açmak için.
@@ -77,9 +77,10 @@ struct CanvasView: View {
     /// En hızlı otomatik kaydırma, adım başına (tuval point'i; saniyede ~60 adım).
     private static let maxEdgeSpeed: CGFloat = 12
 
-    /// Referans iPhone ekranı (point). Normalize koordinatlar buna göredir; önizleme de aynısını kullanır.
+    /// Referans iPhone ekranı (point); cihaz bilinmediğinde kullanılan varsayılan tuval.
     static let referenceSize = CanvasMapping.referenceSize
-    private let referenceSize = Self.referenceSize
+    /// Bu projenin tuvali (point). Normalize koordinatlar buna göredir.
+    private var referenceSize: CGSize { viewModel.canvasSize }
 
     var body: some View {
         GeometryReader { geometry in
@@ -131,12 +132,12 @@ struct CanvasView: View {
             // Çerçeve çizerken sayfa kenarda kendiliğinden kayınca çerçeve de uzar
             updateMarqueeSelection()
         }
-        .onChange(of: CanvasMapping(area: areaFrame, viewport: viewport), initial: true) { _, mapping in
+        .onChange(of: CanvasMapping(area: areaFrame, viewport: viewport, canvasSize: referenceSize), initial: true) { _, mapping in
             onMappingChange(mapping)
         }
         // Eleman silinince sayfa kısalır; kaydırma yeni sınırın dışında kalmasın
         .onChange(of: contentHeight) { _, height in
-            let limit = CanvasViewport.maxScroll(contentHeight: height)
+            let limit = CanvasViewport.maxScroll(contentHeight: height, screenHeight: referenceSize.height)
             if viewport.scroll > limit {
                 withAnimation(.snappy) { viewport.scroll = limit }
             }
@@ -346,7 +347,8 @@ struct CanvasView: View {
         let move = CGSize(width: twoFingerTranslation.width - panBase.width,
                           height: twoFingerTranslation.height - panBase.height)
         viewport = .dragged(from: pinched, by: move, cardSize: cardSize, available: available,
-                            scale: fitted * pinched.zoom, contentHeight: contentHeight)
+                            scale: fitted * pinched.zoom, contentHeight: contentHeight,
+                            screenHeight: referenceSize.height)
     }
 
     /// İki parmak da kalkınca hareket biter; sığdığından küçükse kart yerine oturur.
@@ -386,7 +388,8 @@ struct CanvasView: View {
                 if gestureStart == nil { gestureStart = viewport }
                 guard let start = gestureStart else { return }
                 viewport = .dragged(from: start, by: value.translation, cardSize: cardSize, available: available,
-                                    scale: scale, contentHeight: contentHeight)
+                                    scale: scale, contentHeight: contentHeight,
+                                    screenHeight: referenceSize.height)
             }
             .onEnded { _ in
                 gestureStart = nil
@@ -409,7 +412,7 @@ struct CanvasView: View {
         // Eleman çok uzunsa üst kenarı kartın üstünden çıkacak kadar kaydırma
         let shift = min(needed, elementTop - max(cardTop, 0) - margin)
         guard shift > 0 else { return }
-        let limit = CanvasViewport.maxScroll(contentHeight: contentHeight)
+        let limit = CanvasViewport.maxScroll(contentHeight: contentHeight, screenHeight: referenceSize.height)
         withAnimation(.snappy) {
             viewport.scroll = min(viewport.scroll + shift / scale, limit)
         }
@@ -651,7 +654,7 @@ struct CanvasView: View {
 
         edgeScrollTask = Task { @MainActor in
             while !Task.isCancelled, edgeScrollSpeed != 0 {
-                let limit = CanvasViewport.maxScroll(contentHeight: contentHeight)
+                let limit = CanvasViewport.maxScroll(contentHeight: contentHeight, screenHeight: referenceSize.height)
                 let newScroll = min(max(viewport.scroll + edgeScrollSpeed, 0), limit)
                 // Sayfa ne kadar kaydıysa eleman da o kadar kayar; parmağın altında kalır
                 edgeScrolled += newScroll - viewport.scroll

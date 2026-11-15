@@ -15,8 +15,8 @@ struct CanvasViewport: Equatable {
     /// Büyütülmüş kart kenarından bu kadar fazla kaydırılabilir; kenar parmağın altında kalmasın.
     static let edgeMargin: CGFloat = 40
 
-    /// Bir ekranın yüksekliği (tuval point'i).
-    static let screenHeight: CGFloat = 852
+    /// iPhone'da bir ekranın yüksekliği (tuval point'i); ekran yüksekliği verilmezse bu kullanılır.
+    static let screenHeight: CGFloat = DeviceKind.iPhone.canvasSize.height
 
     var zoom: CGFloat = 1
     var pan: CGSize = .zero
@@ -24,7 +24,8 @@ struct CanvasViewport: Equatable {
 
     /// Sayfa en fazla ne kadar kaydırılabilir: gerçek uzunluğunun bir ekran fazlası,
     /// yani en altta her zaman bir boş ekran daha var. `contentHeight` ekran yüksekliği birimiyle.
-    static func maxScroll(contentHeight: Double) -> CGFloat {
+    /// `screenHeight` projenin cihazındaki bir ekranın yüksekliğidir (tuval point'i).
+    static func maxScroll(contentHeight: Double, screenHeight: CGFloat = screenHeight) -> CGFloat {
         CGFloat(contentHeight) * screenHeight
     }
 
@@ -52,7 +53,8 @@ struct CanvasViewport: Equatable {
     ///   - scale: Ekran point'inin tuval point'ine oranı (kartın o anki küçültme × yakınlaştırma).
     ///   - contentHeight: Sayfanın gerçek uzunluğu, ekran yüksekliği birimiyle.
     static func dragged(from start: CanvasViewport, by translation: CGSize, cardSize: CGSize,
-                        available: CGSize, scale: CGFloat, contentHeight: Double) -> CanvasViewport {
+                        available: CGSize, scale: CGFloat, contentHeight: Double,
+                        screenHeight: CGFloat = screenHeight) -> CanvasViewport {
         let wantedPanY = start.pan.height + translation.height
         var result = CanvasViewport(zoom: start.zoom,
                                     pan: CGSize(width: start.pan.width + translation.width, height: wantedPanY),
@@ -60,7 +62,7 @@ struct CanvasViewport: Equatable {
             .clamped(cardSize: cardSize, available: available)
         let leftover = wantedPanY - result.pan.height
         let scroll = start.scroll - leftover / scale
-        result.scroll = min(max(scroll, 0), maxScroll(contentHeight: contentHeight))
+        result.scroll = min(max(scroll, 0), maxScroll(contentHeight: contentHeight, screenHeight: screenHeight))
         return result
     }
 

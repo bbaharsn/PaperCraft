@@ -11,6 +11,8 @@ import SwiftUI
 struct PreviewView: View {
     /// Canvas kartının ekrandaki yeri; önizleme buradan büyür, buraya küçülür.
     let cardFrame: CGRect
+    /// Projenin tuvali (point); iPhone ya da iPad.
+    let canvasSize: CGSize
     /// Kapanma animasyonu bitince çağrılır.
     let onClose: () -> Void
 
@@ -36,9 +38,11 @@ struct PreviewView: View {
     /// Bu kadar aşağı kaydırılınca önizleme kapanır.
     private static let dismissDistance: CGFloat = 140
 
-    init(screens: [PrototypeScreen], startID: UUID, cardFrame: CGRect, onClose: @escaping () -> Void) {
+    init(screens: [PrototypeScreen], startID: UUID, canvasSize: CGSize = CanvasView.referenceSize,
+         cardFrame: CGRect, onClose: @escaping () -> Void) {
         _screens = State(initialValue: screens)
         _history = State(initialValue: [startID])
+        self.canvasSize = canvasSize
         self.cardFrame = cardFrame
         self.onClose = onClose
     }
@@ -59,13 +63,14 @@ struct PreviewView: View {
                 ? CGRect(origin: .zero, size: screenSize)
                 : cardFrame.offsetBy(dx: insets.leading - global.minX, dy: insets.top - global.minY)
 
-            let stageWidth = PreviewLayout.stageWidth(for: screenSize)
+            let stageWidth = PreviewLayout.stageWidth(for: screenSize, reference: canvasSize)
             let cardScale = card.width / stageWidth
             // Kapalıyken kart birebir canvas'taki gibidir; açılırken durum çubuğu payı da animasyonla gelir
             let layout = PreviewLayout(
                 stageSize: CGSize(width: stageWidth,
                                   height: isExpanded ? screenSize.height : card.height / cardScale),
-                topInset: isExpanded ? insets.top : 0
+                topInset: isExpanded ? insets.top : 0,
+                reference: canvasSize
             )
 
             ZStack(alignment: .topTrailing) {
@@ -106,7 +111,7 @@ struct PreviewView: View {
 
     /// Tasarım: durum çubuğu payı ve elemanlar. Gerçek boyutta çizip ekrana sığdırılır; canvas ile aynı oranlar.
     private func stage(_ layout: PreviewLayout) -> some View {
-        let size = CanvasView.referenceSize
+        let size = canvasSize
         let focusedFrame = screen.elements.first { $0.id == focusedElementID }?.frame
         let lift = focusedFrame.map { layout.keyboardLift(for: $0, keyboardHeight: keyboardHeight) } ?? 0
         return ZStack(alignment: .topLeading) {
@@ -141,7 +146,7 @@ struct PreviewView: View {
     /// Uzun sayfa: içerik canvas'taki gibi birebir konumlarda aşağı kayar; sabit üst bar ve alt menü
     /// kaymaz, durum çubuğunun altında ve en altta durur. Uzun sayfada klavye tasarımı kaldırmaz.
     private func scrollingPage(_ layout: PreviewLayout) -> some View {
-        let size = CanvasView.referenceSize
+        let size = canvasSize
         let contentHeight = layout.scrollingContentHeight(for: screen)
         let pinned = screen.elements.filter(\.isPinned)
         let scrolling = screen.elements.filter { !$0.isPinned }
@@ -194,7 +199,7 @@ struct PreviewView: View {
     /// Verilen elemanlar, gerçek iPhone point'leriyle yerleştirilmiş ve dokunulabilir halde.
     /// `scrolling` true ise kayan sayfanın birebir konumları, değilse durum çubuğunun altına yayılan konumlar.
     private func elementsLayer(_ layout: PreviewLayout, _ elements: [CanvasElement], scrolling: Bool) -> some View {
-        let size = CanvasView.referenceSize
+        let size = canvasSize
         return ZStack {
             ForEach(Array(elements.enumerated()), id: \.element.id) { index, element in
                 let frame = element.frame
@@ -223,7 +228,7 @@ struct PreviewView: View {
     private func closeButtonTop(_ layout: PreviewLayout) -> CGFloat {
         let bar = screen.elements.first { $0.type == .navigationBar }
         guard let bar, (bar.properties.trailingItem ?? .none) != .none else { return layout.topInset + 4 }
-        return layout.topInset + bar.frame.height * CanvasView.referenceSize.height * layout.scale + 8
+        return layout.topInset + bar.frame.height * canvasSize.height * layout.scale + 8
     }
 
     /// Dokunulan elemanın bağlantısını çalıştırır. Sayfa silinmişse ya da geri gidecek sayfa yoksa bir şey olmaz.

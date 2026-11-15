@@ -6,15 +6,15 @@
 import SwiftUI
 
 /// Bir ekranın küçük, dokunulamayan önizlemesi (Projelerim ve sayfa kartlarında).
-/// Elemanlar canvas'taki gibi gerçek iPhone boyutunda yerleştirilir, sonra verilen genişliğe küçültülür.
+/// Elemanlar canvas'taki gibi projenin cihazının gerçek boyutunda yerleştirilir, sonra verilen genişliğe küçültülür.
 /// Uzun sayfa gerçek uzunluğunda görünür; `maxScreens`'i aşan kısmı soluklaşarak kesilir.
 struct ScreenThumbnail: View {
     let screen: PrototypeScreen
     /// En fazla kaç ekran boyu gösterilsin (sayfa kartlarında 2, Projelerim'de 1).
     var maxScreens: Double = 2
 
-    /// Referans iPhone ekranı (point); canvas ile aynı.
-    private let referenceSize = CGSize(width: 393, height: 852)
+    /// Projenin tuvali (point); canvas ile aynı. Verilmezse iPhone.
+    var referenceSize: CGSize = CanvasMapping.referenceSize
 
     /// Gösterilen yükseklik (tuval point'i).
     private var shownHeight: CGFloat {
