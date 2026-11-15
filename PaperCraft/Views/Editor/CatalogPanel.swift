@@ -16,6 +16,9 @@ struct CatalogPanel: View {
     var onDragChanged: (ElementType, CGPoint) -> Void = { _, _ in }
     /// Sürüklenen kart bırakılınca parmağın ekrandaki yeri (global).
     var onDragEnded: (ElementType, CGPoint) -> Void = { _, _ in }
+    /// Dikey iPad'de: panel kalın çizgili bir kart olur (sağ üst köşesi yuvarlak), yanındaki Özellikler
+    /// panelinden ayrı durur. iPhone'da kapalı; orada sadece üstte ince bir çizgi var.
+    var isOutlined = false
 
     /// Seçili sekme. Henüz seçilmediyse ilk kategori gösterilir.
     @State private var selectedCategory: String?
@@ -60,13 +63,15 @@ struct CatalogPanel: View {
                     Text(category)
                         .font(.system(size: 14, weight: isSelected ? .semibold : .regular))
                         .foregroundStyle(Theme.ink)
-                        .padding(.horizontal, 14)
+                        .lineLimit(1)
+                        .padding(.horizontal, 4)
                         .padding(.vertical, 8)
+                        // Sekmeler satırı eşit paylaşır; hiçbiri kesilmez, dizilim düzenli durur.
+                        .frame(maxWidth: .infinity)
                         .background(isSelected ? Theme.panel : Theme.tabInactive, in: tabShape)
                         .overlay(tabShape.stroke(Theme.ink, lineWidth: 1))
                 }
             }
-            Spacer()
         }
         .padding(.horizontal, 12)
     }
@@ -100,10 +105,25 @@ struct CatalogPanel: View {
             .padding(.vertical, 24)
         }
         .frame(maxWidth: .infinity)
-            .background(Theme.panel.ignoresSafeArea(edges: .bottom))
-            .overlay(alignment: .top) {
+        .background {
+            if isOutlined {
+                outlineShape.fill(Theme.panel).ignoresSafeArea(edges: .bottom)
+            } else {
+                Theme.panel.ignoresSafeArea(edges: .bottom)
+            }
+        }
+        .overlay(alignment: .top) {
+            if isOutlined {
+                outlineShape.stroke(Theme.ink, lineWidth: 2).ignoresSafeArea(edges: .bottom)
+            } else {
                 Rectangle().fill(Theme.ink).frame(height: 1)
             }
+        }
+    }
+
+    /// Çerçeveli panelin şekli: sağ üst köşesi yuvarlak; sol ve alt kenar ekranın kenarında.
+    private var outlineShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(topTrailingRadius: Theme.cornerRadius)
     }
 
     /// İlk birkaç point'te yön belli olur: yukarı ağırlıklıysa sürükleme başlar, değilse

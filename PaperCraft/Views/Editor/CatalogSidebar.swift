@@ -49,27 +49,28 @@ struct CatalogSidebar: View {
     }
 
     private var tabs: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .bottom, spacing: 4) {
-                ForEach(catalog.categories, id: \.self) { category in
-                    let isSelected = category == currentCategory
-                    Button {
-                        selectedCategory = category
-                    } label: {
-                        Text(category)
-                            .font(.system(size: 14, weight: isSelected ? .semibold : .regular))
-                            .foregroundStyle(Theme.ink)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .background(isSelected ? Theme.panel : Theme.tabInactive, in: tabShape)
-                            .overlay(tabShape.stroke(Theme.ink, lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
+        HStack(alignment: .bottom, spacing: 4) {
+            ForEach(catalog.categories, id: \.self) { category in
+                let isSelected = category == currentCategory
+                Button {
+                    selectedCategory = category
+                } label: {
+                    Text(category)
+                        .font(.system(size: 14, weight: isSelected ? .semibold : .regular))
+                        .foregroundStyle(Theme.ink)
+                        .lineLimit(1)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 8)
+                        // Sekmeler satırı eşit paylaşır; dar panelde de hepsi görünür.
+                        .frame(maxWidth: .infinity)
+                        .background(isSelected ? Theme.panel : Theme.tabInactive, in: tabShape)
+                        .overlay(tabShape.stroke(Theme.ink, lineWidth: 1))
                 }
+                .buttonStyle(.plain)
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 1)   // seçili sekmenin üst çizgisi kesilmesin
         }
+        .padding(.horizontal, 12)
+        .padding(.top, 1)   // seçili sekmenin üst çizgisi kesilmesin
     }
 
     private var tabShape: UnevenRoundedRectangle {

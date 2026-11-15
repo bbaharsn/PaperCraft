@@ -11,7 +11,7 @@ extension EditorView {
 
     /// Sağdaki Özellikler panelinin genişliği (point).
     static let inspectorWidth: CGFloat = 340
-    /// Bundan dar alanda (ör. dikey iPad) iki panel aynı anda açılmaz; Özellikler açılınca katalog gizlenir.
+    /// Bundan dar alanda (ör. dikey iPad) katalog solda değil, canvas'ın altında açılır.
     static let roomyWidth: CGFloat = 1000
 
     /// Sağ panel açık mı: arka plan ayarları ya da seçili elemanın Özellikleri.
@@ -24,16 +24,23 @@ extension EditorView {
             topBar
                 .zIndex(1)
             GeometryReader { geometry in
+                // Yatayda katalog solda; dikeyde yana sığmadığı için iPhone'daki gibi canvas'ın altında.
                 let isRoomy = geometry.size.width >= Self.roomyWidth
                 HStack(spacing: 0) {
-                    if isSidebarOpen && (isRoomy || !isInspectorOpen) {
+                    if isSidebarOpen && isRoomy {
                         sidebar
                             .padding(.bottom, 16)
                             .transition(.move(edge: .leading).combined(with: .opacity))
                     }
-                    canvas(bottomInset: 0, onBackgroundTap: {})
-                        .padding()
-                        .frame(maxWidth: .infinity)
+                    VStack(spacing: 0) {
+                        canvas(bottomInset: 0, onBackgroundTap: {})
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                        if isSidebarOpen && !isRoomy {
+                            bottomCatalog
+                                .transition(.move(edge: .bottom))
+                        }
+                    }
                     if isInspectorOpen {
                         inspector
                             .padding(.bottom, 16)
@@ -54,6 +61,26 @@ extension EditorView {
             onDragChanged: catalogDragChanged,
             onDragEnded: catalogDragEnded
         )
+        .sheet(isPresented: $isPickingSymbol, onDismiss: { symbolDropPoint = nil }) {
+            SymbolCatalogSheet(symbols: viewModel.symbolCatalog.symbols) { name in
+                viewModel.addSymbol(named: name, centeredAt: symbolDropPoint)
+            }
+        }
+    }
+
+    /// Dikey iPad'deki katalog: iPhone'daki alt panelin aynısı, sadece canvas sütununun genişliğinde.
+    /// Kart yukarı (canvas'a doğru) çekilerek sürüklenir.
+    private var bottomCatalog: some View {
+        CatalogPanel(
+            catalog: viewModel.catalog,
+            onSelect: { type in add(type, at: nil) },
+            onBackground: openBackground,
+            onDragChanged: catalogDragChanged,
+            onDragEnded: catalogDragEnded,
+            isOutlined: true
+        )
+        // Özellikler panelinden (ve ekranın sağ kenarından) ayrı dursun
+        .padding(.trailing, 12)
         .sheet(isPresented: $isPickingSymbol, onDismiss: { symbolDropPoint = nil }) {
             SymbolCatalogSheet(symbols: viewModel.symbolCatalog.symbols) { name in
                 viewModel.addSymbol(named: name, centeredAt: symbolDropPoint)

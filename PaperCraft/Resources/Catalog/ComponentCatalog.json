@@ -203,7 +203,7 @@
     {
       "type": "navigationBar",
       "displayName": "üst bar",
-      "category": "Navigasyon",
+      "category": "Menü",
       "paletteSymbol": "menubar.rectangle",
       "placement": "top",
       "defaultSize": {
@@ -245,7 +245,7 @@
     {
       "type": "tabBar",
       "displayName": "alt menü",
-      "category": "Navigasyon",
+      "category": "Menü",
       "paletteSymbol": "dock.rectangle",
       "placement": "bottom",
       "defaultSize": {

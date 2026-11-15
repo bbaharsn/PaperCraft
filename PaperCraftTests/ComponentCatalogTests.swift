@@ -11,7 +11,7 @@ struct ComponentCatalogTests {
 
     @Test func categoriesFollowDesignTabOrder() throws {
         let catalog = try ComponentCatalog.load()
-        #expect(catalog.categories == ["Temel", "Form", "Navigasyon", "Medya"])
+        #expect(catalog.categories == ["Temel", "Form", "Menü", "Medya"])
     }
 
     @Test func everyComponentAppearsInExactlyOneCategory() throws {
