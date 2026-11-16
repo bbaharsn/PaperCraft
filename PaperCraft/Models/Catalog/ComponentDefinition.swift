@@ -13,7 +13,8 @@ nonisolated struct ComponentDefinition: Decodable {
     /// Eleman Kütüphanesi'nde (palette) gösterilecek SF Symbol.
     let paletteSymbol: String
     let placement: ComponentPlacement
-    let defaultSize: CatalogSize
+    /// `var`: ekran genişliğindeki bileşenler (üst bar, alt menü) iPad'de tuval genişliğine uzar.
+    var defaultSize: CatalogSize
     let minSize: CatalogSize
     let defaultProperties: ElementProperties
     /// AI'ın bu bileşen için kullanabileceği alternatif adlar (ileride parser kullanacak).

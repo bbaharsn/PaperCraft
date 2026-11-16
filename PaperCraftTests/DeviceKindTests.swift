@@ -44,6 +44,19 @@ struct DeviceKindTests {
         #expect(project.device == .iPhone)
     }
 
+    // MARK: - Yeni proje menüsü
+
+    @Test func menuPutsPreferredDeviceFirst() {
+        #expect(DeviceKind.menuOrder(preferred: .iPhone) == [.iPhone, .iPad])
+        #expect(DeviceKind.menuOrder(preferred: .iPad) == [.iPad, .iPhone])
+    }
+
+    @Test func eachDeviceHasTitleAndSymbol() {
+        #expect(DeviceKind.iPhone.title == "iPhone")
+        #expect(DeviceKind.iPad.title == "iPad")
+        #expect(DeviceKind.iPad.symbolName == "ipad")
+    }
+
     // MARK: - Katalog ve editör
 
     @Test func iPhoneSizeIsUnchanged() throws {
@@ -63,6 +76,26 @@ struct DeviceKindTests {
         let rect = editor.pointRect(of: element)
         #expect(isClose(rect.width, definition.defaultSize.width))
         #expect(isClose(rect.height, definition.defaultSize.height))
+    }
+
+    /// Üst bar ve alt menü iPad'de de tuvalin tam genişliğinde, yüksekliği aynı.
+    @Test(arguments: [ElementType.navigationBar, .tabBar])
+    func iPadFullWidthBarsSpanCanvas(_ type: ElementType) throws {
+        let catalog = try ComponentCatalog.load()
+        let iPhoneHeight = try #require(catalog.definition(for: type)).defaultSize.height
+        let editor = EditorViewModel(catalog: catalog.sized(for: .iPad), screen: PrototypeScreen(name: "Test"))
+        let element = try #require(editor.catalog.makeElement(of: type))
+
+        #expect(isClose(element.frame.x, 0))
+        #expect(isClose(element.frame.width, 1))
+        #expect(isClose(editor.pointRect(of: element).height, iPhoneHeight))
+    }
+
+    @Test func iPhoneBarsAreUnchanged() throws {
+        let catalog = try ComponentCatalog.load()
+        let original = try #require(catalog.definition(for: .tabBar)).defaultSize
+        let sized = try #require(catalog.sized(for: .iPhone).definition(for: .tabBar)).defaultSize
+        #expect(sized.width == original.width && sized.height == original.height)
     }
 
     // MARK: - Canvas eşlemesi

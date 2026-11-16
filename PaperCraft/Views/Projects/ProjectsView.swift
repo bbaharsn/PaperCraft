@@ -26,7 +26,8 @@ struct ProjectsView: View {
     /// Örnek proje bir kez oluşturulur; kullanıcı silerse geri gelmez.
     @AppStorage("hasCreatedSampleProject") private var hasCreatedSampleProject = false
 
-    private let columns = [GridItem(.adaptive(minimum: 150), spacing: 20)]
+    private let columns = [GridItem(.adaptive(minimum: 150), spacing: 20, alignment: .top)]
+    // .top: iPad kartı daha kısa; satırda ortalanmasın.
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -93,21 +94,49 @@ struct ProjectsView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Lisanslar")
-                Button(action: createProject) {
-                    Label("Yeni proje", systemImage: "plus")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Theme.paper)
-                        .padding(.horizontal, 16)
-                        .frame(height: 44)
-                        .background(Theme.ink, in: RoundedRectangle(cornerRadius: 10))
-                }
-                .buttonStyle(.plain)
-                .keyboardShortcut("n", modifiers: .command)
+                newProjectMenu
             }
             Text("Projelerim")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(Theme.ink)
         }
+    }
+
+    /// "Yeni proje": dokununca cihaz seçilir. Kullanıcının elindeki cihaz en üstte.
+    private var newProjectMenu: some View {
+        Menu {
+            ForEach(DeviceKind.menuOrder(preferred: currentDevice), id: \.self) { device in
+                Button(device.title, systemImage: device.symbolName) {
+                    createProject(device: device)
+                }
+            }
+        } label: {
+            Label("Yeni proje", systemImage: "plus")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.paper)
+                .padding(.horizontal, 16)
+                .frame(height: 44)
+                .background(Theme.ink, in: RoundedRectangle(cornerRadius: 10))
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        // ⌘N menüyü açmadan bu cihaz için proje açar.
+        .background {
+            Button("Yeni proje") { createProject(device: currentDevice) }
+                .keyboardShortcut("n", modifiers: .command)
+                .opacity(0)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+    }
+
+    /// Uygulamanın çalıştığı cihaz; Mac'te iPhone.
+    private var currentDevice: DeviceKind {
+        #if os(iOS)
+        UIDevice.current.userInterfaceIdiom == .pad ? .iPad : .iPhone
+        #else
+        .iPhone
+        #endif
     }
 
     private var projectGrid: some View {
@@ -149,9 +178,10 @@ struct ProjectsView: View {
     // MARK: - İşlemler
 
     /// Boş bir sayfayla yeni proje açar ve doğrudan editörüne geçer.
-    private func createProject() {
+    private func createProject(device: DeviceKind) {
         let name = Project.uniqueName("Yeni Proje", existing: projects.map(\.name))
-        let project = Project.create(name: name, screen: PrototypeScreen(name: "Sayfa 1"), in: context)
+        let project = Project.create(name: name, device: device,
+                                     screen: PrototypeScreen(name: "Sayfa 1"), in: context)
         path.append(project)
         if let record = project.sortedScreens.first { path.append(record) }
     }

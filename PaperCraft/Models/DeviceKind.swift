@@ -18,4 +18,25 @@ nonisolated enum DeviceKind: String, Codable, CaseIterable {
         case .iPad: CGSize(width: 820, height: 1180)    // iPad Air 11", dikey
         }
     }
+
+    /// Menüde ve proje kartında görünen ad.
+    var title: String {
+        switch self {
+        case .iPhone: "iPhone"
+        case .iPad: "iPad"
+        }
+    }
+
+    /// SF Symbol adı.
+    var symbolName: String {
+        switch self {
+        case .iPhone: "iphone"
+        case .iPad: "ipad"
+        }
+    }
+
+    /// "Yeni proje" menüsünün sırası: kullanıcının elindeki cihaz en üstte.
+    static func menuOrder(preferred: DeviceKind) -> [DeviceKind] {
+        [preferred] + allCases.filter { $0 != preferred }
+    }
 }
