@@ -39,7 +39,7 @@ struct TabBarPropertiesSheet: View {
 
         Section {
             ForEach(items.indices, id: \.self) { index in
-                NavigationLink {
+                PanelLink(title: "Sekme \(index + 1)") {
                     TabItemPropertiesView(viewModel: viewModel, index: index)
                 } label: {
                     Label(items[index].text, systemImage: items[index].symbolName)

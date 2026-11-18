@@ -6,17 +6,15 @@
 import SwiftUI
 
 /// Yazı tiplerinin listesi; her ad kendi yazı tipiyle yazılır, seçilen işaretlenir.
-/// Özellikler sayfasından içeri itilerek (push) açılır, seçince geri döner.
+/// Özellikler sayfasından içeri itilerek (push) açılır; seçince açık kalır, "Geri" ile dönülür.
 struct FontPickerList: View {
     @Binding var fontName: String
 
-    @Environment(\.dismiss) private var dismiss
-
     var body: some View {
         List(FontFamilies.all, id: \.self) { name in
+            // Seçince liste açık kalır; kullanıcı fontları canvas'ta deneyip "Geri" ile döner
             Button {
                 fontName = name
-                dismiss()
             } label: {
                 HStack {
                     Text(FontFamilies.title(of: name))
@@ -32,7 +30,7 @@ struct FontPickerList: View {
         }
         .scrollContentBackground(.hidden)
         .background(Theme.panel)
-        .navigationTitle("Yazı Tipi")
+        // Başlık `PanelLink`'ten gelir
     }
 }
 
@@ -40,5 +38,6 @@ struct FontPickerList: View {
     @Previewable @State var fontName = "Georgia"
     NavigationStack {
         FontPickerList(fontName: $fontName)
+            .navigationTitle("Yazı Tipi")
     }
 }

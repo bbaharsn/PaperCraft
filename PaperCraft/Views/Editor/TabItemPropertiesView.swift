@@ -13,6 +13,7 @@ struct TabItemPropertiesView: View {
 
     /// Sekme silinince sayfa kapanıp listeye dönülür.
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.panelNavigator) private var panel
 
     var body: some View {
         Form {
@@ -31,7 +32,7 @@ struct TabItemPropertiesView: View {
             Section {
                 Button("Sekmeyi Sil", role: .destructive) {
                     viewModel.removeSelectedTab(at: index)
-                    dismiss()
+                    PanelBackAction(panel: panel, dismiss: dismiss)()
                 }
                 .disabled((viewModel.selectedElement?.properties.items?.count ?? 0)
                           <= TabItem.allowedCount.lowerBound)
@@ -39,6 +40,6 @@ struct TabItemPropertiesView: View {
         }
         .scrollContentBackground(.hidden)
         .background(Theme.panel)
-        .navigationTitle("Sekme \(index + 1)")
+        // Başlık `PanelLink`'ten gelir
     }
 }

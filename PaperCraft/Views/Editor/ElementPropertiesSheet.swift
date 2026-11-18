@@ -32,6 +32,8 @@ struct ElementPropertiesSheet: View {
             PanelHeaderStack(title: title, onDone: onDone) {
                 form
             }
+            // Başka eleman seçilince açık alt sayfa (font listesi, sekme) kapanır, panel baştan açılır
+            .id(viewModel.selectedElement?.id)
         } else {
             NavigationStack {
                 form

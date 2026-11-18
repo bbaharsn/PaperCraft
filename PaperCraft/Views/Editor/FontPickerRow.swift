@@ -11,7 +11,7 @@ struct FontPickerRow: View {
     @Binding var fontName: String
 
     var body: some View {
-        NavigationLink {
+        PanelLink(title: "Yazı Tipi") {
             FontPickerList(fontName: $fontName)
         } label: {
             Text(FontFamilies.title(of: fontName))
