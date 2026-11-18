@@ -12,6 +12,11 @@ struct ProjectPagesView: View {
     let project: Project
     /// Bir sayfanın editörde açılması istenince çağrılır.
     let onOpen: (ScreenRecord) -> Void
+    /// iPad'de Projelerim'in sağ tarafında mı? O zaman geri oku yok, başlık büyük, kartlar daha geniş.
+    var isEmbedded = false
+    /// Verilirse "Dene" önizlemeyi kendisi açmaz, ilk kartın yeriyle bunu çağırır;
+    /// gömülüyken önizleme sağ tarafa değil tüm ekrana açılsın diye.
+    var onPreview: ((CGRect) -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
@@ -26,7 +31,10 @@ struct ProjectPagesView: View {
     @State private var deletingRecord: ScreenRecord?
 
     /// Uzun sayfanın kartı daha uzun; aynı satırdaki kısa kartlar üstten hizalanır.
-    private let columns = [GridItem(.adaptive(minimum: 150), spacing: 20, alignment: .top)]
+    /// iPad'de kartlar büyür: iPhone'daki 150 pt'lik kart geniş ekranda küçük pul gibi kalıyordu.
+    private var columns: [GridItem] {
+        [GridItem(.adaptive(minimum: isEmbedded ? 190 : 150), spacing: isEmbedded ? 28 : 20, alignment: .top)]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,7 +46,7 @@ struct ProjectPagesView: View {
                     }
                     addCard
                 }
-                .padding(20)
+                .padding(isEmbedded ? 28 : 20)
             }
         }
         .background(Theme.background)
@@ -73,7 +81,37 @@ struct ProjectPagesView: View {
 
     // MARK: - Parçalar
 
+    @ViewBuilder
     private var topBar: some View {
+        if isEmbedded {
+            embeddedTopBar
+        } else {
+            stackTopBar
+        }
+    }
+
+    /// iPad: solda proje adı başlık olarak (Projelerim başlığıyla aynı ölçü), sağda "Dene".
+    private var embeddedTopBar: some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(project.name)
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(1)
+                Text("\(project.sortedScreens.count) sayfa · \(project.device.title)")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.ink.opacity(0.65))
+            }
+            Spacer(minLength: 16)
+            tryButton
+        }
+        .padding(.horizontal, 28)
+        .padding(.top, 20)
+        .padding(.bottom, 4)
+    }
+
+    /// iPhone: geri oku ve proje adı, sağda "Dene".
+    private var stackTopBar: some View {
         HStack {
             Button { dismiss() } label: {
                 HStack(spacing: 4) {
@@ -91,18 +129,24 @@ struct ProjectPagesView: View {
 
             Spacer(minLength: 8)
 
-            Button { isPreviewing = true } label: {
-                Text("Dene")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Theme.paper)
-                    .padding(.horizontal, 18)
-                    .frame(height: 44)
-                    .background(Theme.ink, in: RoundedRectangle(cornerRadius: 10))
-            }
-            .buttonStyle(.plain)
+            tryButton
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 8)
+    }
+
+    private var tryButton: some View {
+        Button {
+            if let onPreview { onPreview(firstCardFrame) } else { isPreviewing = true }
+        } label: {
+            Text("Dene")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Theme.paper)
+                .padding(.horizontal, 18)
+                .frame(height: 44)
+                .background(Theme.ink, in: RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
     }
 
     private func pageCard(_ record: ScreenRecord) -> some View {

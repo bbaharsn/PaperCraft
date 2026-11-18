@@ -10,6 +10,8 @@ import SwiftUI
 /// Bir projeye dokununca sayfaları açılır.
 struct ProjectsView: View {
     @Environment(\.modelContext) private var context
+    /// Geniş ekranda (iPad, tam ekran) proje listesi solda, seçili projenin sayfaları sağda.
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     /// En son düzenlenen en üstte.
     @Query(sort: \Project.updatedAt, order: .reverse) private var projects: [Project]
 
@@ -22,6 +24,11 @@ struct ProjectsView: View {
     @State private var deletingProject: Project?
     /// ⓘ ile açılan Lisanslar sayfası
     @State private var isShowingLicenses = false
+    /// iPad: soldaki listede seçili proje. `nil` ya da silinmişse en son düzenlenen seçili görünür.
+    @State private var selectedProjectID: PersistentIdentifier?
+    /// iPad: "Dene" ile önizlemesi açılan proje ve büyümeye başladığı ilk sayfa kartının yeri.
+    @State private var previewProject: Project?
+    @State private var previewCardFrame: CGRect = .zero
 
     /// Örnek proje bir kez oluşturulur; kullanıcı silerse geri gelmez.
     @AppStorage("hasCreatedSampleProject") private var hasCreatedSampleProject = false
@@ -31,18 +38,13 @@ struct ProjectsView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    header
-                    if projects.isEmpty {
-                        emptyState
-                    } else {
-                        projectGrid
-                    }
+            Group {
+                if isWide {
+                    wideLayout
+                } else {
+                    compactLayout
                 }
-                .padding(20)
             }
-            .background(Theme.background)
             #if os(iOS)
             .toolbar(.hidden, for: .navigationBar)
             #endif
@@ -78,6 +80,27 @@ struct ProjectsView: View {
 
     // MARK: - Parçalar
 
+    /// Geniş ekran mı? Bölünmüş ekranda dar kalan iPad penceresi iPhone düzenine döner.
+    private var isWide: Bool {
+        horizontalSizeClass == .regular
+    }
+
+    /// iPhone: projeler ızgara halinde; dokununca sayfaları yeni ekranda açılır.
+    private var compactLayout: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                header
+                if projects.isEmpty {
+                    emptyState
+                } else {
+                    projectGrid
+                }
+            }
+            .padding(20)
+        }
+        .background(Theme.background)
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
@@ -94,7 +117,7 @@ struct ProjectsView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Lisanslar")
-                newProjectMenu
+                newProjectMenu(compact: false)
             }
             Text("Projelerim")
                 .font(.system(size: 28, weight: .bold))
@@ -103,7 +126,8 @@ struct ProjectsView: View {
     }
 
     /// "Yeni proje": dokununca cihaz seçilir. Kullanıcının elindeki cihaz en üstte.
-    private var newProjectMenu: some View {
+    /// `compact` iPad kenar listesinde yalnızca + gösterir; dar sütunda logo ile yan yana sığsın.
+    private func newProjectMenu(compact: Bool) -> some View {
         Menu {
             ForEach(DeviceKind.menuOrder(preferred: currentDevice), id: \.self) { device in
                 Button(device.title, systemImage: device.symbolName) {
@@ -112,12 +136,14 @@ struct ProjectsView: View {
             }
         } label: {
             Label("Yeni proje", systemImage: "plus")
+                .labelStyle(NewProjectLabelStyle(compact: compact))
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Theme.paper)
-                .padding(.horizontal, 16)
-                .frame(height: 44)
+                .padding(.horizontal, compact ? 0 : 16)
+                .frame(width: compact ? 44 : nil, height: 44)
                 .background(Theme.ink, in: RoundedRectangle(cornerRadius: 10))
         }
+        .accessibilityLabel("Yeni proje")
         .menuStyle(.button)
         .buttonStyle(.plain)
         // ⌘N menüyü açmadan bu cihaz için proje açar.
@@ -175,6 +201,114 @@ struct ProjectsView: View {
         .padding(.top, 80)
     }
 
+    // MARK: - iPad düzeni
+
+    /// iPad: solda proje listesi, sağda seçili projenin sayfaları. Sayfaya dokununca editör tüm ekrana açılır.
+    /// `NavigationSplitView` değil: editör bu yığının içinde açılıyor, iç içe yığın editörü kapatıyordu.
+    private var wideLayout: some View {
+        HStack(spacing: 0) {
+            sidebar
+                .frame(width: 320)
+            Rectangle()
+                .fill(Theme.ink.opacity(0.12))
+                .frame(width: 1)
+                .ignoresSafeArea()
+            detail
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .background(Theme.background)
+        .overlay {
+            // Önizleme sağ tarafa değil tüm ekrana açılır
+            if let project = previewProject, let first = project.previewScreens.first {
+                PreviewView(screens: project.previewScreens,
+                            startID: first.id,
+                            canvasSize: project.device.canvasSize,
+                            cardFrame: previewCardFrame,
+                            onClose: { previewProject = nil })
+            }
+        }
+    }
+
+    /// Seçili proje; seçim yoksa ya da seçilen silindiyse en son düzenlenen.
+    private var selectedProject: Project? {
+        projects.first { $0.persistentModelID == selectedProjectID } ?? projects.first
+    }
+
+    private var sidebar: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    (Text("papercraft").foregroundStyle(Theme.ink)
+                     + Text(".").foregroundStyle(Theme.accent))
+                        .font(Theme.logoFont(size: 24))
+                    Spacer()
+                    Button { isShowingLicenses = true } label: {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 20))
+                            .foregroundStyle(Theme.ink)
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Lisanslar")
+                    newProjectMenu(compact: true)
+                }
+                Text("Projelerim")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundStyle(Theme.ink)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 12)
+
+            ScrollView {
+                LazyVStack(spacing: 4) {
+                    ForEach(projects) { project in
+                        sidebarRow(project)
+                    }
+                }
+                .padding(.horizontal, 10)
+                .padding(.bottom, 20)
+            }
+        }
+        .background(Theme.panel)
+    }
+
+    private func sidebarRow(_ project: Project) -> some View {
+        Button {
+            selectedProjectID = project.persistentModelID
+        } label: {
+            ProjectSidebarRow(project: project, isSelected: project == selectedProject)
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button("Yeniden adlandır", systemImage: "pencil") {
+                newName = project.name
+                renamingProject = project
+            }
+            Button("Sil", systemImage: "trash", role: .destructive) {
+                deletingProject = project
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var detail: some View {
+        if let project = selectedProject {
+            ProjectPagesView(project: project,
+                             onOpen: { path.append($0) },
+                             isEmbedded: true,
+                             onPreview: { frame in
+                                 previewCardFrame = frame
+                                 previewProject = project
+                             })
+                // Başka proje seçilince sayfa ekranının durumu (yeniden adlandırma vb.) sıfırlansın
+                .id(project.persistentModelID)
+        } else {
+            emptyState
+                .frame(maxHeight: .infinity, alignment: .top)
+        }
+    }
+
     // MARK: - İşlemler
 
     /// Boş bir sayfayla yeni proje açar ve doğrudan editörüne geçer.
@@ -182,7 +316,12 @@ struct ProjectsView: View {
         let name = Project.uniqueName("Yeni Proje", existing: projects.map(\.name))
         let project = Project.create(name: name, device: device,
                                      screen: PrototypeScreen(name: "Sayfa 1"), in: context)
-        path.append(project)
+        // iPad'de proje soldan seçilir, sayfaları zaten sağda; yalnızca editör açılır.
+        if isWide {
+            selectedProjectID = project.persistentModelID
+        } else {
+            path.append(project)
+        }
         if let record = project.sortedScreens.first { path.append(record) }
     }
 
@@ -224,7 +363,11 @@ struct ProjectsView: View {
         guard let project = try? context.fetch(newestFirst).first,
               let record = project.sortedScreens.first else { return }
         DebugLaunchOptions.hasOpenedEditor = true
-        path.append(project)
+        if isWide {
+            selectedProjectID = project.persistentModelID
+        } else {
+            path.append(project)
+        }
         path.append(record)
     }
 
