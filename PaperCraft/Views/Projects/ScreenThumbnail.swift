@@ -16,25 +16,28 @@ struct ScreenThumbnail: View {
     /// Projenin tuvali (point); canvas ile aynı. Verilmezse iPhone.
     var referenceSize: CGSize = CanvasMapping.referenceSize
 
+    /// Sayfanın gerçek uzunluğu (ekran yüksekliği birimi), projenin tuvaline göre.
+    private var contentHeight: Double { screen.contentHeight(screenHeight: referenceSize.height) }
+
     /// Gösterilen yükseklik (tuval point'i).
     private var shownHeight: CGFloat {
-        CGFloat(min(screen.contentHeight, maxScreens)) * referenceSize.height
+        CGFloat(min(contentHeight, maxScreens)) * referenceSize.height
     }
 
     /// Sabit alt bar (ekranın alt yarısındaki sabit eleman) kartın en altına iner; uzun sayfada
     /// ilk ekranın ortasında kalmasın. Üstteki sabit barlar ve diğer elemanlar yerinde kalır (ekran birimi).
     private func pinnedShift(for element: CanvasElement) -> Double {
         guard element.isPinned, element.frame.y + element.frame.height / 2 > 0.5 else { return 0 }
-        return min(screen.contentHeight, maxScreens) - 1
+        return min(contentHeight, maxScreens) - 1
     }
 
     /// Sayfa gösterilenden uzun mu? O zaman alt kısım soluklaşır.
-    private var isCut: Bool { screen.contentHeight > maxScreens }
+    private var isCut: Bool { contentHeight > maxScreens }
 
     var body: some View {
         GeometryReader { geometry in
             let scale = geometry.size.width / referenceSize.width
-            let pageHeight = CGFloat(screen.contentHeight) * referenceSize.height
+            let pageHeight = CGFloat(contentHeight) * referenceSize.height
 
             ZStack {
                 ForEach(screen.elements) { element in

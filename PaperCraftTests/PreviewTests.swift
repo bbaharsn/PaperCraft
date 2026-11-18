@@ -118,7 +118,7 @@ struct PreviewTests {
             CanvasElement(type: .box, frame: NormalizedFrame(x: 0, y: 0.9, width: 0.5, height: 0.1),
                           properties: ElementProperties())
         ])
-        #expect(screen.contentHeight == 1)
+        #expect(screen.contentHeight(screenHeight: 852) == 1)
 
         let layout = PreviewLayout(stageSize: CGSize(width: 390, height: 844), topInset: 47)
         let frame = screen.elements[0].frame

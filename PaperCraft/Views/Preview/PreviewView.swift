@@ -116,7 +116,7 @@ struct PreviewView: View {
         let lift = focusedFrame.map { layout.keyboardLift(for: $0, keyboardHeight: keyboardHeight) } ?? 0
         return ZStack(alignment: .topLeading) {
             ZStack(alignment: .topLeading) {
-                if screen.contentHeight > 1 {
+                if screen.contentHeight(screenHeight: size.height) > 1 {
                     scrollingPage(layout)
                 } else {
                     ScreenBackgroundView(background: screen.background)

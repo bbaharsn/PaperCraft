@@ -145,7 +145,7 @@ struct CanvasView: View {
     }
 
     /// Sayfanın gerçek uzunluğu (ekran yüksekliği birimi).
-    private var contentHeight: Double { viewModel.screen.contentHeight }
+    private var contentHeight: Double { viewModel.screen.contentHeight(screenHeight: referenceSize.height) }
 
     /// Kağıt kart: kayan sayfa (arka plan, elemanlar, sayfa sonu) ve üstünde sabit barlar.
     /// Yakınlaştırma ve kaydırma uygulanmış halde.

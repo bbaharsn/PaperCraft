@@ -27,26 +27,33 @@ struct ScrollingPageTests {
     // MARK: - Sayfanın uzunluğu
 
     @Test func emptyPageIsOneScreen() {
-        #expect(screen([]).contentHeight == 1)
+        #expect(screen([]).contentHeight(screenHeight: 852) == 1)
     }
 
     @Test func shortPageIsOneScreen() {
-        #expect(screen([element(y: 0.7)]).contentHeight == 1)
+        #expect(screen([element(y: 0.7)]).contentHeight(screenHeight: 852) == 1)
     }
 
     @Test func longPageEndsBelowLowestElement() {
         let page = screen([element(y: 0.2), element(y: 1.5)])
-        #expect(abs(page.contentHeight - (1.6 + 24.0 / 852.0)) < 0.0001)
+        #expect(abs(page.contentHeight(screenHeight: 852) - (1.6 + 24.0 / 852.0)) < 0.0001)
+    }
+
+    @Test func pageEndIs24PointsBelowOnIPad() {
+        let iPadHeight = DeviceKind.iPad.canvasSize.height
+        let page = screen([element(y: 1.5)])
+        let endInPoints = (page.contentHeight(screenHeight: iPadHeight) - 1.6) * iPadHeight
+        #expect(abs(endInPoints - 24) < 0.001)
     }
 
     @Test func pinnedBarsDoNotCount() {
         let page = screen([element(.tabBar, y: 0.9), element(y: 1.2)])
-        #expect(abs(page.contentHeight - (1.3 + PrototypeScreen.endMargin)) < 0.0001)
+        #expect(abs(page.contentHeight(screenHeight: 852) - (1.3 + PrototypeScreen.endMargin(screenHeight: 852))) < 0.0001)
     }
 
     @Test func scrollingBarCounts() {
         let page = screen([element(.navigationBar, y: 1.4, scroll: .scrolls)])
-        #expect(abs(page.contentHeight - (1.5 + PrototypeScreen.endMargin)) < 0.0001)
+        #expect(abs(page.contentHeight(screenHeight: 852) - (1.5 + PrototypeScreen.endMargin(screenHeight: 852))) < 0.0001)
     }
 
     @Test func onlyFixedBarsArePinned() {

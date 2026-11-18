@@ -14,17 +14,23 @@ nonisolated struct PrototypeScreen: Identifiable, Codable, Equatable {
     /// Sayfanın arka planı; `nil` ise kağıt rengi. Eski kayıtlar bu alan olmadan da açılır.
     var background: ScreenBackground?
 
-    /// Sayfa sonunun en alttaki elemandan uzaklığı (ekran yüksekliği birimi; 24 pt).
-    static let endMargin: Double = 24.0 / 852.0
+    /// Sayfa sonunun en alttaki elemandan uzaklığı (point). Her cihazda aynı.
+    static let endMarginPoints: Double = 24
 
-    /// Sayfanın gerçek uzunluğu, ekran yüksekliği birimiyle: en alttaki elemanın biraz altında biter,
+    /// Sayfa sonu boşluğu, verilen ekran yüksekliğinin birimiyle (iPhone'da 24/852, iPad'de 24/1180).
+    static func endMargin(screenHeight: CGFloat) -> Double {
+        endMarginPoints / Double(screenHeight)
+    }
+
+    /// Sayfanın gerçek uzunluğu, ekran yüksekliği birimiyle: en alttaki elemanın 24 pt altında biter,
     /// en az bir ekrandır. Sabit üst bar ve alt menü sayılmaz; onlar sayfaya değil ekrana bağlı.
-    var contentHeight: Double {
+    /// - Parameter screenHeight: Projenin tuval yüksekliği (point).
+    func contentHeight(screenHeight: CGFloat) -> Double {
         let lowestBottom = elements
             .filter { !$0.isPinned }
             .map { $0.frame.y + $0.frame.height }
             .max() ?? 0
-        return lowestBottom > 1 ? lowestBottom + Self.endMargin : 1
+        return lowestBottom > 1 ? lowestBottom + Self.endMargin(screenHeight: screenHeight) : 1
     }
 
     /// Ekrandaki yüklenmiş fotoğrafların dosya adları; çoğaltılan elemanlar aynı adı paylaşır, bir kez sayılır.
