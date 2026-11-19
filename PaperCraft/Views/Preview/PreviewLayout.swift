@@ -56,6 +56,31 @@ nonisolated struct PreviewLayout {
         return max(0, min(needed, elementTop - topInset - margin))
     }
 
+    // MARK: - Telefon çerçevesi (iPad'de iPhone projesi)
+
+    /// Çerçevedeki telefonun durum çubuğu payı (tuval point'i); iPhone 15/16'nın üst güvenli alanı.
+    static let phoneTopInset: CGFloat = 59
+    /// Çerçevenin ekran kenarlarına en az uzaklığı (ekran point'i).
+    static let phoneFrameMargin: CGFloat = 40
+    /// Çerçevedeki telefonun köşe yarıçapı (tuval point'i); gerçek iPhone ekranının köşesine yakın.
+    static let phoneCornerRadius: CGFloat = 55
+
+    /// iPhone tasarımı bu ekranda telefon çerçevesinde mi gösterilsin? Geniş ve yeterince uzun ekranlarda
+    /// (iPad, Mac penceresi) evet: tasarım büyütülüp esnetilmek yerine telefondaki boyutunda ortada durur.
+    /// iPad tasarımı ve telefonun kendisi (dik ya da yatay) her zaman tüm ekranı kullanır.
+    static func showsPhoneFrame(for screen: CGSize, reference: CGSize = CanvasMapping.referenceSize) -> Bool {
+        let isPhoneDesign = reference.width / reference.height < 0.6
+        return isPhoneDesign
+            && screen.width >= reference.width * 1.5
+            && screen.height >= reference.height * 0.8
+    }
+
+    /// Çerçevedeki telefonun ölçeği: gerçek boyut (1), ekran yetmezse sığacak kadar küçük; hiç büyümez.
+    static func phoneFrameScale(for screen: CGSize, reference: CGSize = CanvasMapping.referenceSize) -> CGFloat {
+        let margin = phoneFrameMargin * 2
+        return min(1, (screen.height - margin) / reference.height, (screen.width - margin) / reference.width)
+    }
+
     /// Geniş ekranlarda (iPad, Mac) tasarım kendi cihazının oranında kalır.
     /// iPhone tuvali en fazla 0,6 oranına kadar genişler; iPad tuvali kendi oranında durur.
     static func stageWidth(for screen: CGSize, reference: CGSize = CanvasMapping.referenceSize) -> CGFloat {

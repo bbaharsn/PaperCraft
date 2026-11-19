@@ -146,4 +146,35 @@ struct PreviewTests {
         #expect(layout.scrollingContentHeight(for: empty) == max(layout.designHeight, 852))
         #expect(abs(layout.scrollingContentHeight(for: long) - (2.5 * 852 + 24)) < 0.01)
     }
+
+    // MARK: - iPad'de iPhone projesi: telefon çerçevesi
+
+    private let phone = CGSize(width: 393, height: 852)
+    private let iPadDesign = CGSize(width: 820, height: 1180)
+
+    @Test func phoneDesignIsFramedOnIPad() {
+        #expect(PreviewLayout.showsPhoneFrame(for: CGSize(width: 1032, height: 1376), reference: phone))   // iPad Pro 13" dik
+        #expect(PreviewLayout.showsPhoneFrame(for: CGSize(width: 1376, height: 1032), reference: phone))   // yatay
+        #expect(PreviewLayout.showsPhoneFrame(for: CGSize(width: 1133, height: 744), reference: phone))    // iPad mini yatay
+    }
+
+    @Test func phoneItselfIsNeverFramed() {
+        #expect(!PreviewLayout.showsPhoneFrame(for: CGSize(width: 390, height: 844), reference: phone))
+        #expect(!PreviewLayout.showsPhoneFrame(for: CGSize(width: 844, height: 390), reference: phone))    // yatay telefon
+    }
+
+    @Test func iPadDesignIsNeverFramed() {
+        #expect(!PreviewLayout.showsPhoneFrame(for: CGSize(width: 1032, height: 1376), reference: iPadDesign))
+    }
+
+    @Test func framedPhoneIsRealSizeWhenItFits() {
+        #expect(PreviewLayout.phoneFrameScale(for: CGSize(width: 1032, height: 1376), reference: phone) == 1)
+    }
+
+    @Test func framedPhoneShrinksButNeverGrows() {
+        // iPad mini yatay: 744 - 2·40 = 664 pt yükseklik var
+        let scale = PreviewLayout.phoneFrameScale(for: CGSize(width: 1133, height: 744), reference: phone)
+        #expect(abs(scale - 664.0 / 852.0) < 0.0001)
+        #expect(PreviewLayout.phoneFrameScale(for: CGSize(width: 3000, height: 3000), reference: phone) == 1)
+    }
 }

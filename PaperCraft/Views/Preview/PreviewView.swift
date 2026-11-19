@@ -63,30 +63,56 @@ struct PreviewView: View {
                 ? CGRect(origin: .zero, size: screenSize)
                 : cardFrame.offsetBy(dx: insets.leading - global.minX, dy: insets.top - global.minY)
 
-            let stageWidth = PreviewLayout.stageWidth(for: screenSize, reference: canvasSize)
+            // iPad'de iPhone projesi: telefon kendi boyutunda ortada durur, büyütülüp esnetilmez
+            let framed = PreviewLayout.showsPhoneFrame(for: screenSize, reference: canvasSize)
+            let frameScale = PreviewLayout.phoneFrameScale(for: screenSize, reference: canvasSize)
+            let stageWidth = framed
+                ? canvasSize.width * frameScale
+                : PreviewLayout.stageWidth(for: screenSize, reference: canvasSize)
+            let expandedHeight = framed ? canvasSize.height * frameScale : screenSize.height
+            let expandedTopInset = framed ? PreviewLayout.phoneTopInset * frameScale : insets.top
+            let expandedCorner = framed ? PreviewLayout.phoneCornerRadius * frameScale : 0
             let cardScale = card.width / stageWidth
             // Kapalıyken kart birebir canvas'taki gibidir; açılırken durum çubuğu payı da animasyonla gelir
             let layout = PreviewLayout(
                 stageSize: CGSize(width: stageWidth,
-                                  height: isExpanded ? screenSize.height : card.height / cardScale),
-                topInset: isExpanded ? insets.top : 0,
+                                  height: isExpanded ? expandedHeight : card.height / cardScale),
+                topInset: isExpanded ? expandedTopInset : 0,
                 reference: canvasSize
             )
+            // Çerçevede telefonun altı ekranın altında değil; klavye sadece telefonun üstüne bindiği kadar sayılır
+            let keyboardOverlap = framed
+                ? max(0, keyboardHeight - (screenSize.height - expandedHeight) / 2)
+                : keyboardHeight
+            let corner = isExpanded ? expandedCorner : Theme.cornerRadius / cardScale
 
             ZStack(alignment: .topTrailing) {
                 // Tasarım telefon oranında kaldığı için geniş ekranlarda yanları doldurur
                 Theme.background
                     .opacity(isExpanded && dismissOffset == 0 ? 1 : 0)
 
-                stage(layout)
-                    .clipShape(RoundedRectangle(cornerRadius: isExpanded ? 0 : Theme.cornerRadius / cardScale))
+                stage(layout, keyboardHeight: keyboardOverlap)
+                    .clipShape(RoundedRectangle(cornerRadius: corner))
+                    // Kâğıt kart gibi: ince mürekkep çizgisi ve bulanık olmayan gölge (sadece çerçevede)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: corner)
+                            .stroke(Theme.ink, lineWidth: 1.5)
+                            .opacity(framed && isExpanded ? 1 : 0)
+                    }
+                    // Gölge arkadaki dolu şekil; `.shadow` çizginin kopyasını telefonun içine de düşürüyordu
+                    .background {
+                        RoundedRectangle(cornerRadius: corner)
+                            .fill(Theme.ink)
+                            .offset(x: Theme.shadowOffset.width * 2, y: Theme.shadowOffset.height * 2)
+                            .opacity(framed && isExpanded ? 1 : 0)
+                    }
                     .scaleEffect(isExpanded ? 1 : cardScale)
                     .position(x: isExpanded ? screenSize.width / 2 : card.midX,
                               y: (isExpanded ? screenSize.height / 2 : card.midY) + dismissOffset)
 
                 closeButton
-                    .padding(.top, closeButtonTop(layout))
-                    .padding(.trailing, insets.trailing + 12)
+                    .padding(.top, framed ? insets.top + 12 : closeButtonTop(layout))
+                    .padding(.trailing, insets.trailing + (framed ? 20 : 12))
                     .opacity(isExpanded ? 1 : 0)
             }
             .frame(width: screenSize.width, height: screenSize.height)
@@ -110,7 +136,8 @@ struct PreviewView: View {
     }
 
     /// Tasarım: durum çubuğu payı ve elemanlar. Gerçek boyutta çizip ekrana sığdırılır; canvas ile aynı oranlar.
-    private func stage(_ layout: PreviewLayout) -> some View {
+    /// - Parameter keyboardHeight: Klavyenin tasarımın üstüne bindiği yükseklik (ekran point'i).
+    private func stage(_ layout: PreviewLayout, keyboardHeight: CGFloat) -> some View {
         let size = canvasSize
         let focusedFrame = screen.elements.first { $0.id == focusedElementID }?.frame
         let lift = focusedFrame.map { layout.keyboardLift(for: $0, keyboardHeight: keyboardHeight) } ?? 0
