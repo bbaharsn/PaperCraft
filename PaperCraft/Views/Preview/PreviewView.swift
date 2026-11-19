@@ -91,7 +91,7 @@ struct PreviewView: View {
                 Theme.background
                     .opacity(isExpanded && dismissOffset == 0 ? 1 : 0)
 
-                stage(layout, keyboardHeight: keyboardOverlap)
+                stage(layout, keyboardHeight: keyboardOverlap, showsStatusBar: framed && isExpanded)
                     .clipShape(RoundedRectangle(cornerRadius: corner))
                     // Kâğıt kart gibi: ince mürekkep çizgisi ve bulanık olmayan gölge (sadece çerçevede)
                     .overlay {
@@ -136,8 +136,10 @@ struct PreviewView: View {
     }
 
     /// Tasarım: durum çubuğu payı ve elemanlar. Gerçek boyutta çizip ekrana sığdırılır; canvas ile aynı oranlar.
-    /// - Parameter keyboardHeight: Klavyenin tasarımın üstüne bindiği yükseklik (ekran point'i).
-    private func stage(_ layout: PreviewLayout, keyboardHeight: CGFloat) -> some View {
+    /// - Parameters:
+    ///   - keyboardHeight: Klavyenin tasarımın üstüne bindiği yükseklik (ekran point'i).
+    ///   - showsStatusBar: Telefon çerçevesinde saat ve pil çizilsin mi? Gerçek cihazda sistem çizer.
+    private func stage(_ layout: PreviewLayout, keyboardHeight: CGFloat, showsStatusBar: Bool) -> some View {
         let size = canvasSize
         let focusedFrame = screen.elements.first { $0.id == focusedElementID }?.frame
         let lift = focusedFrame.map { layout.keyboardLift(for: $0, keyboardHeight: keyboardHeight) } ?? 0
@@ -166,6 +168,14 @@ struct PreviewView: View {
             // Sayfa değişince yenisi yandan kayarak gelir
             .id(screen.id)
             .transition(.push(from: pushEdge))
+
+            // Sayfayla birlikte kaymaz; sayfa değişince sadece rengi değişir
+            if showsStatusBar {
+                PhoneStatusBar(background: statusBarBackground)
+                    .frame(width: size.width)
+                    .scaleEffect(layout.scale, anchor: .topLeading)
+                    .transition(.opacity)
+            }
         }
         .frame(width: layout.stageSize.width, height: layout.stageSize.height, alignment: .topLeading)
     }
@@ -205,6 +215,14 @@ struct PreviewView: View {
                 .scaleEffect(layout.scale, anchor: .topLeading)
                 .offset(y: layout.topInset)
         }
+    }
+
+    /// Durum çubuğunun arkasındaki renk: üst bar varsa onun rengi, yoksa arka planın ilk rengi.
+    private var statusBarBackground: Color {
+        if let navigationBar = screen.elements.first(where: { $0.type == .navigationBar }) {
+            return NavigationBarElementView(properties: navigationBar.properties).backgroundColor
+        }
+        return Color(hexString: screen.background?.color ?? ScreenBackground.defaultColor) ?? .white
     }
 
     /// Ekranda üst bar varsa durum çubuğunun arkası onun rengini alır.
