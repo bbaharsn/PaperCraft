@@ -153,28 +153,80 @@ struct PreviewTests {
     private let iPadDesign = CGSize(width: 820, height: 1180)
 
     @Test func phoneDesignIsFramedOnIPad() {
-        #expect(PreviewLayout.showsPhoneFrame(for: CGSize(width: 1032, height: 1376), reference: phone))   // iPad Pro 13" dik
-        #expect(PreviewLayout.showsPhoneFrame(for: CGSize(width: 1376, height: 1032), reference: phone))   // yatay
-        #expect(PreviewLayout.showsPhoneFrame(for: CGSize(width: 1133, height: 744), reference: phone))    // iPad mini yatay
+        #expect(PreviewLayout.showsDeviceFrame(for: CGSize(width: 1032, height: 1376), reference: phone))   // iPad Pro 13" dik
+        #expect(PreviewLayout.showsDeviceFrame(for: CGSize(width: 1376, height: 1032), reference: phone))   // yatay
+        #expect(PreviewLayout.showsDeviceFrame(for: CGSize(width: 1133, height: 744), reference: phone))    // iPad mini yatay
     }
 
     @Test func phoneItselfIsNeverFramed() {
-        #expect(!PreviewLayout.showsPhoneFrame(for: CGSize(width: 390, height: 844), reference: phone))
-        #expect(!PreviewLayout.showsPhoneFrame(for: CGSize(width: 844, height: 390), reference: phone))    // yatay telefon
+        #expect(!PreviewLayout.showsDeviceFrame(for: CGSize(width: 390, height: 844), reference: phone))
+        #expect(!PreviewLayout.showsDeviceFrame(for: CGSize(width: 844, height: 390), reference: phone))    // yatay telefon
     }
 
     @Test func iPadDesignIsNeverFramed() {
-        #expect(!PreviewLayout.showsPhoneFrame(for: CGSize(width: 1032, height: 1376), reference: iPadDesign))
+        #expect(!PreviewLayout.showsDeviceFrame(for: CGSize(width: 1032, height: 1376), reference: iPadDesign))
     }
 
     @Test func framedPhoneIsRealSizeWhenItFits() {
-        #expect(PreviewLayout.phoneFrameScale(for: CGSize(width: 1032, height: 1376), reference: phone) == 1)
+        #expect(PreviewLayout.deviceFrameScale(for: CGSize(width: 1032, height: 1376), reference: phone) == 1)
     }
 
     @Test func framedPhoneShrinksButNeverGrows() {
         // iPad mini yatay: 744 - 2·40 = 664 pt yükseklik var
-        let scale = PreviewLayout.phoneFrameScale(for: CGSize(width: 1133, height: 744), reference: phone)
+        let scale = PreviewLayout.deviceFrameScale(for: CGSize(width: 1133, height: 744), reference: phone)
         #expect(abs(scale - 664.0 / 852.0) < 0.0001)
-        #expect(PreviewLayout.phoneFrameScale(for: CGSize(width: 3000, height: 3000), reference: phone) == 1)
+        #expect(PreviewLayout.deviceFrameScale(for: CGSize(width: 3000, height: 3000), reference: phone) == 1)
+    }
+
+    // MARK: - Yatay iPad tasarımı
+
+    private let landscape = DeviceKind.iPadLandscape.canvasSize
+
+    @Test func landscapeDesignIsFramedOnPortraitScreens() {
+        #expect(PreviewLayout.showsDeviceFrame(for: CGSize(width: 1032, height: 1376), reference: landscape))  // dikey iPad
+        #expect(PreviewLayout.showsDeviceFrame(for: CGSize(width: 390, height: 844), reference: landscape))    // telefon
+    }
+
+    @Test func landscapeDesignFillsLandscapeIPad() {
+        #expect(!PreviewLayout.showsDeviceFrame(for: CGSize(width: 1376, height: 1032), reference: landscape)) // iPad Pro 13" yatay
+        #expect(!PreviewLayout.showsDeviceFrame(for: CGSize(width: 1133, height: 744), reference: landscape))  // iPad mini yatay
+    }
+
+    @Test func framedLandscapeDesignShrinksToFitWidth() {
+        // Dikey iPad Pro 13": 1032 - 2·40 = 952 pt genişlik var
+        let scale = PreviewLayout.deviceFrameScale(for: CGSize(width: 1032, height: 1376), reference: landscape)
+        #expect(abs(scale - 952.0 / 1180.0) < 0.0001)
+    }
+
+    @Test func frameInsetAndCornerFollowTheDevice() {
+        #expect(PreviewLayout.frameTopInset(for: phone) == 59)
+        #expect(PreviewLayout.frameTopInset(for: landscape) == 24)
+        #expect(PreviewLayout.frameCornerRadius(for: phone) == 55)
+        #expect(PreviewLayout.frameCornerRadius(for: landscape) == 18)
+    }
+
+    // MARK: - Yatay iPhone tasarımı
+
+    private let landscapePhone = DeviceKind.iPhoneLandscape.canvasSize
+
+    @Test func landscapePhoneIsStillAPhoneDesign() {
+        #expect(PreviewLayout.isPhoneDesign(landscapePhone))
+        #expect(!PreviewLayout.isPhoneDesign(landscape))
+    }
+
+    @Test func landscapePhoneIsFramedOnIPadAndPortraitPhone() {
+        #expect(PreviewLayout.showsDeviceFrame(for: CGSize(width: 1376, height: 1032), reference: landscapePhone)) // yatay iPad
+        #expect(PreviewLayout.showsDeviceFrame(for: CGSize(width: 1032, height: 1376), reference: landscapePhone)) // dikey iPad
+        #expect(PreviewLayout.showsDeviceFrame(for: CGSize(width: 390, height: 844), reference: landscapePhone))   // dik telefon
+    }
+
+    @Test func landscapePhoneFillsLandscapePhone() {
+        #expect(!PreviewLayout.showsDeviceFrame(for: CGSize(width: 844, height: 390), reference: landscapePhone))
+    }
+
+    @Test func landscapePhoneFrameHasNoStatusBar() {
+        #expect(PreviewLayout.frameTopInset(for: landscapePhone) == 0)
+        #expect(PreviewLayout.frameCornerRadius(for: landscapePhone) == 55)
+        #expect(PreviewLayout.deviceFrameScale(for: CGSize(width: 1376, height: 1032), reference: landscapePhone) == 1)
     }
 }

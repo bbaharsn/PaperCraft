@@ -47,14 +47,37 @@ struct DeviceKindTests {
     // MARK: - Yeni proje menüsü
 
     @Test func menuPutsPreferredDeviceFirst() {
-        #expect(DeviceKind.menuOrder(preferred: .iPhone) == [.iPhone, .iPad])
-        #expect(DeviceKind.menuOrder(preferred: .iPad) == [.iPad, .iPhone])
+        #expect(DeviceKind.menuOrder(preferred: .iPhone) == [.iPhone, .iPhoneLandscape, .iPad, .iPadLandscape])
+        #expect(DeviceKind.menuOrder(preferred: .iPad) == [.iPad, .iPadLandscape, .iPhone, .iPhoneLandscape])
     }
 
     @Test func eachDeviceHasTitleAndSymbol() {
         #expect(DeviceKind.iPhone.title == "iPhone")
         #expect(DeviceKind.iPad.title == "iPad")
         #expect(DeviceKind.iPad.symbolName == "ipad")
+        #expect(DeviceKind.iPadLandscape.title == "iPad (yatay)")
+        #expect(DeviceKind.iPadLandscape.symbolName == "ipad.landscape")
+        #expect(DeviceKind.iPhoneLandscape.title == "iPhone (yatay)")
+        #expect(DeviceKind.iPhoneLandscape.symbolName == "iphone.landscape")
+    }
+
+    @Test func landscapeIPhoneIsTheRotatedPortraitCanvas() {
+        let portrait = DeviceKind.iPhone.canvasSize
+        #expect(DeviceKind.iPhoneLandscape.canvasSize == CGSize(width: portrait.height, height: portrait.width))
+        #expect(DeviceKind.iPhoneLandscape.isLandscape)
+        #expect(!DeviceKind.iPhoneLandscape.isPad)
+        #expect(!DeviceKind.iPhone.isLandscape)
+    }
+
+    @Test func landscapeIPadIsTheRotatedPortraitCanvas() {
+        let portrait = DeviceKind.iPad.canvasSize
+        #expect(DeviceKind.iPadLandscape.canvasSize == CGSize(width: portrait.height, height: portrait.width))
+    }
+
+    @Test func landscapeIPadProjectIsSaved() throws {
+        let project = Project(name: "Yatay", device: .iPadLandscape)
+        #expect(project.deviceRaw == "iPadLandscape")
+        #expect(project.device == .iPadLandscape)
     }
 
     // MARK: - Katalog ve editör

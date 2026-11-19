@@ -63,15 +63,15 @@ struct PreviewView: View {
                 ? CGRect(origin: .zero, size: screenSize)
                 : cardFrame.offsetBy(dx: insets.leading - global.minX, dy: insets.top - global.minY)
 
-            // iPad'de iPhone projesi: telefon kendi boyutunda ortada durur, büyütülüp esnetilmez
-            let framed = PreviewLayout.showsPhoneFrame(for: screenSize, reference: canvasSize)
-            let frameScale = PreviewLayout.phoneFrameScale(for: screenSize, reference: canvasSize)
+            // iPad'de iPhone projesi ya da dikey ekranda yatay tasarım: cihaz kendi boyutunda ortada durur
+            let framed = PreviewLayout.showsDeviceFrame(for: screenSize, reference: canvasSize)
+            let frameScale = PreviewLayout.deviceFrameScale(for: screenSize, reference: canvasSize)
             let stageWidth = framed
                 ? canvasSize.width * frameScale
                 : PreviewLayout.stageWidth(for: screenSize, reference: canvasSize)
             let expandedHeight = framed ? canvasSize.height * frameScale : screenSize.height
-            let expandedTopInset = framed ? PreviewLayout.phoneTopInset * frameScale : insets.top
-            let expandedCorner = framed ? PreviewLayout.phoneCornerRadius * frameScale : 0
+            let expandedTopInset = framed ? PreviewLayout.frameTopInset(for: canvasSize) * frameScale : insets.top
+            let expandedCorner = framed ? PreviewLayout.frameCornerRadius(for: canvasSize) * frameScale : 0
             let cardScale = card.width / stageWidth
             // Kapalıyken kart birebir canvas'taki gibidir; açılırken durum çubuğu payı da animasyonla gelir
             let layout = PreviewLayout(
@@ -80,7 +80,7 @@ struct PreviewView: View {
                 topInset: isExpanded ? expandedTopInset : 0,
                 reference: canvasSize
             )
-            // Çerçevede telefonun altı ekranın altında değil; klavye sadece telefonun üstüne bindiği kadar sayılır
+            // Çerçevede cihazın altı ekranın altında değil; klavye sadece cihazın üstüne bindiği kadar sayılır
             let keyboardOverlap = framed
                 ? max(0, keyboardHeight - (screenSize.height - expandedHeight) / 2)
                 : keyboardHeight
@@ -91,7 +91,8 @@ struct PreviewView: View {
                 Theme.background
                     .opacity(isExpanded && dismissOffset == 0 ? 1 : 0)
 
-                stage(layout, keyboardHeight: keyboardOverlap, showsStatusBar: framed && isExpanded)
+                stage(layout, keyboardHeight: keyboardOverlap,
+                      showsStatusBar: framed && isExpanded && PreviewLayout.frameTopInset(for: canvasSize) > 0)
                     .clipShape(RoundedRectangle(cornerRadius: corner))
                     // Kâğıt kart gibi: ince mürekkep çizgisi ve bulanık olmayan gölge (sadece çerçevede)
                     .overlay {
@@ -138,7 +139,7 @@ struct PreviewView: View {
     /// Tasarım: durum çubuğu payı ve elemanlar. Gerçek boyutta çizip ekrana sığdırılır; canvas ile aynı oranlar.
     /// - Parameters:
     ///   - keyboardHeight: Klavyenin tasarımın üstüne bindiği yükseklik (ekran point'i).
-    ///   - showsStatusBar: Telefon çerçevesinde saat ve pil çizilsin mi? Gerçek cihazda sistem çizer.
+    ///   - showsStatusBar: Cihaz çerçevesinde saat ve pil çizilsin mi? Gerçek cihazda sistem çizer.
     private func stage(_ layout: PreviewLayout, keyboardHeight: CGFloat, showsStatusBar: Bool) -> some View {
         let size = canvasSize
         let focusedFrame = screen.elements.first { $0.id == focusedElementID }?.frame
@@ -171,7 +172,7 @@ struct PreviewView: View {
 
             // Sayfayla birlikte kaymaz; sayfa değişince sadece rengi değişir
             if showsStatusBar {
-                PhoneStatusBar(background: statusBarBackground)
+                DeviceStatusBar(background: statusBarBackground, isPhone: PreviewLayout.isPhoneDesign(size))
                     .frame(width: size.width)
                     .scaleEffect(layout.scale, anchor: .topLeading)
                     .transition(.opacity)

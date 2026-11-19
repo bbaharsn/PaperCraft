@@ -5,7 +5,7 @@
 
 import CoreGraphics
 
-/// Projenin tuvalini (iPhone 393×852, iPad 820×1180) o anki ekrana yerleştirir.
+/// Projenin tuvalini (iPhone 393×852, iPad 820×1180 ya da bunların yatayı) o anki ekrana yerleştirir.
 /// Eleman boyutları genişliğe göre ölçeklenir; dikey konumlar durum çubuğunun altındaki
 /// alana yayılır. Böylece üst bar güvenli alanın hemen altına, alt menü en alta oturur.
 nonisolated struct PreviewLayout {
@@ -56,28 +56,48 @@ nonisolated struct PreviewLayout {
         return max(0, min(needed, elementTop - topInset - margin))
     }
 
-    // MARK: - Telefon çerçevesi (iPad'de iPhone projesi)
+    // MARK: - Cihaz çerçevesi (iPad'de iPhone projesi, dikey ekranda yatay tasarım)
 
-    /// Çerçevedeki telefonun durum çubuğu payı (tuval point'i); iPhone 15/16'nın üst güvenli alanı.
-    static let phoneTopInset: CGFloat = 59
     /// Çerçevenin ekran kenarlarına en az uzaklığı (ekran point'i).
-    static let phoneFrameMargin: CGFloat = 40
-    /// Çerçevedeki telefonun köşe yarıçapı (tuval point'i); gerçek iPhone ekranının köşesine yakın.
-    static let phoneCornerRadius: CGFloat = 55
+    static let frameMargin: CGFloat = 40
 
-    /// iPhone tasarımı bu ekranda telefon çerçevesinde mi gösterilsin? Geniş ve yeterince uzun ekranlarda
-    /// (iPad, Mac penceresi) evet: tasarım büyütülüp esnetilmek yerine telefondaki boyutunda ortada durur.
-    /// iPad tasarımı ve telefonun kendisi (dik ya da yatay) her zaman tüm ekranı kullanır.
-    static func showsPhoneFrame(for screen: CGSize, reference: CGSize = CanvasMapping.referenceSize) -> Bool {
-        let isPhoneDesign = reference.width / reference.height < 0.6
-        return isPhoneDesign
-            && screen.width >= reference.width * 1.5
-            && screen.height >= reference.height * 0.8
+    /// Telefon tasarımı mı (dikey ya da yatay)? iPhone tuvalinin uzun kenarı kısa kenarının 2 katından fazla;
+    /// iPad'inki 1,5 katından az.
+    static func isPhoneDesign(_ reference: CGSize) -> Bool {
+        max(reference.width, reference.height) / min(reference.width, reference.height) > 1.7
     }
 
-    /// Çerçevedeki telefonun ölçeği: gerçek boyut (1), ekran yetmezse sığacak kadar küçük; hiç büyümez.
-    static func phoneFrameScale(for screen: CGSize, reference: CGSize = CanvasMapping.referenceSize) -> CGFloat {
-        let margin = phoneFrameMargin * 2
+    /// Çerçevedeki cihazın durum çubuğu payı (tuval point'i): dikey iPhone 15/16'da 59, iPad'de 24.
+    /// Yatay iPhone'da 0; gerçek iPhone yan tutulunca durum çubuğunu gizler.
+    static func frameTopInset(for reference: CGSize) -> CGFloat {
+        guard isPhoneDesign(reference) else { return 24 }
+        return reference.width > reference.height ? 0 : 59
+    }
+
+    /// Çerçevedeki cihazın köşe yarıçapı (tuval point'i); gerçek ekranın köşesine yakın.
+    static func frameCornerRadius(for reference: CGSize) -> CGFloat {
+        isPhoneDesign(reference) ? 55 : 18
+    }
+
+    /// Tasarım bu ekranda cihaz çerçevesinde mi gösterilsin? Çerçevede tasarım büyütülüp esnetilmez,
+    /// kendi boyutunda ortada durur.
+    /// - Dikey iPhone tasarımı: geniş ve yeterince uzun ekranlarda (iPad, Mac penceresi).
+    /// - Yatay tasarım (iPhone ya da iPad): ekran onun kadar yatay değilse; yoksa dikey uzardı.
+    /// Dikey iPad tasarımı ve kendi cihazındaki tasarım her zaman tüm ekranı kullanır.
+    static func showsDeviceFrame(for screen: CGSize, reference: CGSize = CanvasMapping.referenceSize) -> Bool {
+        let designRatio = reference.width / reference.height
+        if designRatio > 1 {
+            return screen.width / screen.height < designRatio * 0.9
+        }
+        if isPhoneDesign(reference) {
+            return screen.width >= reference.width * 1.5 && screen.height >= reference.height * 0.8
+        }
+        return false
+    }
+
+    /// Çerçevedeki cihazın ölçeği: gerçek boyut (1), ekran yetmezse sığacak kadar küçük; hiç büyümez.
+    static func deviceFrameScale(for screen: CGSize, reference: CGSize = CanvasMapping.referenceSize) -> CGFloat {
+        let margin = frameMargin * 2
         return min(1, (screen.height - margin) / reference.height, (screen.width - margin) / reference.width)
     }
 
