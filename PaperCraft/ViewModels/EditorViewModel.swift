@@ -190,16 +190,28 @@ final class EditorViewModel {
         return (catalog.definition(for: element.type)?.placement ?? .free) == .free
     }
 
-    /// Seçili elemanın kopyasını 16 pt sağa-aşağı kaydırarak ekler ve kopyayı seçer.
-    /// Kopya yandan taşmaz, aşağıda sayfa uzar; çoğaltılamayan elemanlarda hiçbir şey yapmaz.
+    /// Seçili elemanın (kutuysa içindekilerle birlikte) kopyasını 16 pt sağa-aşağı kaydırarak ekler
+    /// ve kopyayı seçer. Grup tek parça sınırlanır: yandan taşmaz, aşağıda sayfa uzar. Kopyalar kendi
+    /// sıralarıyla en üste eklenir, böylece içindekiler yeni kutunun içinde sayılır. Tek geri al adımıdır;
+    /// çoğaltılamayan elemanlarda hiçbir şey yapmaz.
     func duplicateSelectedElement() {
-        guard canDuplicateSelected, var copy = selectedElement else { return }
+        guard canDuplicateSelected, let id = selectedElementID else { return }
+        let group = movingGroup(for: [id])
+        let members = screen.elements.filter { group.contains($0.id) }
         let offset: Double = 16
-        copy.id = UUID()
-        copy.frame.x = min(copy.frame.x + offset / canvasSize.width, 1 - copy.frame.width)
-        copy.frame.y += offset / canvasSize.height
-        screen.elements.append(copy)   // sona eklenen en üstte çizilir
-        selectedElementID = copy.id
+        let move = GroupMove.clamped(dx: offset / canvasSize.width, dy: offset / canvasSize.height,
+                                     frames: members.map(\.frame), keepsOnScreen: false)
+        var selectedCopy: UUID?
+        let copies = members.map { original in
+            var copy = original
+            copy.id = UUID()
+            copy.frame.x += move.dx
+            copy.frame.y += move.dy
+            if original.id == id { selectedCopy = copy.id }
+            return copy
+        }
+        screen.elements.append(contentsOf: copies)   // sona eklenen en üstte çizilir
+        selectedElementID = selectedCopy
     }
 
     /// Seçili elemanın özelliklerini değiştirir. Seçili eleman yoksa hiçbir şey yapmaz.
