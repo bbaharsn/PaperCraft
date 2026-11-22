@@ -241,6 +241,7 @@ struct EditorView: View {
                     }
                 } else if viewModel.selectedElementID != nil {
                     SelectionToolbar(
+                        onUngroup: viewModel.canUngroupSelected ? { viewModel.ungroupSelectedBox() } : nil,
                         onDuplicate: viewModel.canDuplicateSelected ? { viewModel.duplicateSelectedElement() } : nil,
                         onDelete: { viewModel.deleteSelectedElement() }
                     )

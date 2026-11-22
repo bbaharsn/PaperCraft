@@ -5,11 +5,13 @@
 
 import SwiftUI
 
-/// Bir eleman seçiliyken canvas'ın altında beliren işlem butonları: "Çoğalt" ve "Sil";
-/// toplu seçimde "Kutuya al" ve "Sil".
+/// Bir eleman seçiliyken canvas'ın altında beliren işlem butonları: "Çoğalt" ve "Sil"
+/// (içi dolu bir kutuda önce "Kutuyu çöz"); toplu seçimde "Kutuya al" ve "Sil".
 struct SelectionToolbar: View {
     /// `nil` değilse "Kutuya al" gösterilir: seçilenleri saran bir kutu ekler.
     var onWrap: (() -> Void)? = nil
+    /// `nil` değilse "Kutuyu çöz" gösterilir: kutuyu siler, içindekiler kalır.
+    var onUngroup: (() -> Void)? = nil
     /// `nil` ise "Çoğalt" gösterilmez (ör. üst bar ve alt menü çoğaltılmaz).
     var onDuplicate: (() -> Void)? = nil
     let onDelete: () -> Void
@@ -19,6 +21,18 @@ struct SelectionToolbar: View {
             if let onWrap {
                 Button(action: onWrap) {
                     Label("Kutuya al", systemImage: "square.dashed")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                        .padding(.horizontal, 18)
+                        .frame(height: 40)
+                        .background(Theme.panel, in: Capsule())
+                        .overlay(Capsule().stroke(Theme.ink, lineWidth: 1.5))
+                }
+            }
+
+            if let onUngroup {
+                Button(action: onUngroup) {
+                    Label("Kutuyu çöz", systemImage: "square.slash")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(Theme.ink)
                         .padding(.horizontal, 18)
@@ -59,6 +73,7 @@ struct SelectionToolbar: View {
         SelectionToolbar(onDuplicate: {}, onDelete: {})
         SelectionToolbar(onDelete: {})
         SelectionToolbar(onWrap: {}, onDelete: {})
+        SelectionToolbar(onUngroup: {}, onDuplicate: {}, onDelete: {})
     }
     .padding()
     .background(Theme.background)

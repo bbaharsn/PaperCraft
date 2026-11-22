@@ -109,6 +109,60 @@ struct MultiSelectTests {
         #expect(editor.undoStack.count == 1)
     }
 
+    @Test func ungroupRemovesOnlyBoxAndSelectsContents() throws {
+        let (editor, box, symbol, button) = try boxScene()
+        let symbolFrame = try #require(editor.screen.elements.first { $0.id == symbol }?.frame)
+        editor.select(box)
+        #expect(editor.canUngroupSelected)
+
+        editor.ungroupSelectedBox()
+
+        let ids = editor.screen.elements.map(\.id)
+        #expect(!ids.contains(box) && ids.contains(symbol) && ids.contains(button))
+        #expect(editor.isMultiSelecting)
+        #expect(editor.multiSelection == [symbol])
+        #expect(editor.selectedElementID == nil)
+        #expect(editor.screen.elements.first { $0.id == symbol }?.frame == symbolFrame)
+    }
+
+    @Test func ungroupIsOneUndoStep() throws {
+        let (editor, box, _, _) = try boxScene()
+        editor.select(box)
+        let before = editor.screen
+        editor.ungroupSelectedBox()
+        #expect(editor.undoStack.count == 1)
+        editor.undo()
+        #expect(editor.screen == before)
+    }
+
+    @Test func cannotUngroupEmptyBoxOrNonBox() throws {
+        let emptyBox = element(.box, x: 0.1, y: 0.6, width: 0.3, height: 0.1)
+        let (editor, _, _, button) = try boxScene()
+        editor.screen.elements.append(emptyBox)
+
+        editor.select(emptyBox.id)
+        #expect(!editor.canUngroupSelected)
+        let before = editor.screen
+        editor.ungroupSelectedBox()
+        #expect(editor.screen == before)
+
+        editor.select(button)
+        #expect(!editor.canUngroupSelected)
+    }
+
+    @Test func ungroupNestedKeepsInnerBox() throws {
+        let outer = element(.box, x: 0.1, y: 0.1, width: 0.8, height: 0.4)
+        let inner = element(.box, x: 0.15, y: 0.15, width: 0.4, height: 0.2)
+        let symbol = element(.symbol, x: 0.2, y: 0.2, width: 0.1, height: 0.05)
+        let editor = try editor([outer, inner, symbol])
+        editor.select(outer.id)
+
+        editor.ungroupSelectedBox()
+
+        #expect(editor.screen.elements.map(\.id) == [inner.id, symbol.id])
+        #expect(editor.multiSelection == [inner.id, symbol.id])
+    }
+
     @Test func undoPrunesMultiSelection() throws {
         let editor = try editor([])
         editor.addElement(of: .button)

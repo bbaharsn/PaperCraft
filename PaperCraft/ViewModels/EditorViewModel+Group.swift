@@ -98,6 +98,28 @@ extension EditorViewModel {
         return box.id
     }
 
+    /// Seçili kutunun içindekiler (kutunun kendisi hariç); seçili eleman kutu değilse boş.
+    private var selectedBoxContents: Set<UUID> {
+        guard let box = selectedElement, box.type == .box else { return [] }
+        return movingGroup(for: [box.id]).subtracting([box.id])
+    }
+
+    /// "Kutuyu çöz" gösterilsin mi? Seçili eleman içinde en az bir eleman olan bir kutu olmalı.
+    var canUngroupSelected: Bool {
+        !selectedBoxContents.isEmpty
+    }
+
+    /// "Kutuyu çöz": "Kutuya al"ın tersi. Yalnızca seçili kutu silinir; içindekiler yerinde ve aynı sırada kalır
+    /// (iç içe kutular da). Tek geri al adımıdır. Sonra toplu mod açılır ve içindekiler seçili gelir.
+    func ungroupSelectedBox() {
+        let contents = selectedBoxContents
+        guard let boxID = selectedElementID, !contents.isEmpty else { return }
+        screen.elements.removeAll { $0.id == boxID }
+        selectedElementID = nil
+        isMultiSelecting = true
+        multiSelection = contents
+    }
+
     /// Toplu seçimdeki her şeyi (kutuların içindekiler dahil) tek geri al adımında siler.
     func deleteMultiSelection() {
         let doomed = movingGroup(for: multiSelection)
