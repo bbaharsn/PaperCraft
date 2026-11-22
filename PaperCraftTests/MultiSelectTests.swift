@@ -135,6 +135,32 @@ struct MultiSelectTests {
         #expect(editor.screen == before)
     }
 
+    /// Geri al, çözmeden önceki hali getirir: kutu tek başına seçili, toplu mod kapalı.
+    @Test func undoingUngroupSelectsTheBoxAgain() throws {
+        let (editor, box, _, _) = try boxScene()
+        editor.select(box)
+        editor.ungroupSelectedBox()
+
+        editor.undo()
+
+        #expect(!editor.isMultiSelecting)
+        #expect(editor.multiSelection.isEmpty)
+        #expect(editor.selectedElementID == box)
+    }
+
+    /// Çözdükten sonra başka bir değişiklik yapıldıysa geri al o değişikliği geri alır, seçime dokunmaz.
+    @Test func undoAfterAnotherChangeKeepsMultiSelection() throws {
+        let (editor, box, symbol, _) = try boxScene()
+        editor.select(box)
+        editor.ungroupSelectedBox()
+        editor.moveGroup([symbol], dx: 0.05, dy: 0)
+
+        editor.undo()
+
+        #expect(editor.isMultiSelecting)
+        #expect(editor.multiSelection == [symbol])
+    }
+
     @Test func cannotUngroupEmptyBoxOrNonBox() throws {
         let emptyBox = element(.box, x: 0.1, y: 0.6, width: 0.3, height: 0.1)
         let (editor, _, _, button) = try boxScene()

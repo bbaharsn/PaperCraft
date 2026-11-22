@@ -45,6 +45,8 @@ final class EditorViewModel {
     @ObservationIgnored private var lastChangeDate: Date?
     /// Son değişikliğin neyi değiştirdiği (`ScreenChange.key`); birleştirme kararı için.
     @ObservationIgnored private var lastChangeKey: String?
+    /// Son "Kutuyu çöz"den hemen sonraki ekran ve çözülen kutu. Ekran hâlâ buysa geri al kutuyu yeniden seçer.
+    @ObservationIgnored var ungroupUndoHint: (screenAfter: PrototypeScreen, box: UUID)?
     /// Geri al / yinele ve öne getirme sırasında kayıt tutulmaz.
     @ObservationIgnored private var isRecordingPaused = false
     /// Şu anki zaman; testlerde saati elle ilerletmek için değiştirilir.
@@ -84,8 +86,16 @@ final class EditorViewModel {
     /// Ekranı bir önceki haline döndürür.
     func undo() {
         guard let previous = undoStack.popLast() else { return }
+        let undoesUngroup = ungroupUndoHint.flatMap { $0.screenAfter == screen ? $0.box : nil }
+        ungroupUndoHint = nil
         redoStack.append(screen)
         restore(previous)
+        if let box = undoesUngroup {
+            // Çözmeden önceki seçim: kutu tek başına seçili
+            isMultiSelecting = false
+            multiSelection = []
+            selectedElementID = box
+        }
     }
 
     /// Geri alınan değişikliği yeniden uygular.

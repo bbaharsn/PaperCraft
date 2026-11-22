@@ -118,6 +118,7 @@ extension EditorViewModel {
         selectedElementID = nil
         isMultiSelecting = true
         multiSelection = contents
+        ungroupUndoHint = (screen, boxID)
     }
 
     /// Toplu seçimdeki her şeyi (kutuların içindekiler dahil) tek geri al adımında siler.
