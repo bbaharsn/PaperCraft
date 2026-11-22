@@ -39,6 +39,9 @@ struct TextPropertiesSheet: View {
         Section("Yazı Rengi") {
             ColorSwatchRow(hex: viewModel.binding(\.contentColor, default: "#111111"), presets: textPresets)
         }
+
+        TapActionSection(action: viewModel.binding(\.action, default: ElementAction.none),
+                         targets: viewModel.linkTargets)
     }
 }
 

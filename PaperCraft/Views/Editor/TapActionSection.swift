@@ -6,7 +6,7 @@
 import SwiftUI
 
 /// Özellikler sayfasındaki "Dokununca" bölümü: hiçbir şey, geri dön ya da projedeki bir sayfa.
-/// Buton, görsel, üst bar sağ butonu ve alt menü sekmeleri ortak kullanır.
+/// Buton, metin, görsel, sembol, kutu, üst bar sağ butonu ve alt menü sekmeleri ortak kullanır.
 struct TapActionSection: View {
     @Binding var action: ElementAction
     let targets: [ScreenLink]

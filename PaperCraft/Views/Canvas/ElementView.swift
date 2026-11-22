@@ -19,7 +19,7 @@ struct ElementView: View {
 
         switch element.type {
         case .text:
-            TextElementView(properties: properties)
+            tappable { TextElementView(properties: properties) }
 
         case .button:
             if interactive != nil {
@@ -63,7 +63,7 @@ struct ElementView: View {
 }
 
 private extension ElementView {
-    /// Bağlantısı olan görsel ve semboller önizlemede buton gibi davranır.
+    /// Bağlantısı olan metin, görsel, sembol ve kutular önizlemede buton gibi davranır.
     @ViewBuilder
     func tappable<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         let action = element.properties.action ?? .none

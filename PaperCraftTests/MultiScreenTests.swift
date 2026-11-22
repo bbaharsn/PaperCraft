@@ -143,6 +143,17 @@ struct MultiScreenTests {
         #expect(screen.elements[0].properties.action == ElementAction.none)
     }
 
+    @Test func textLinkIsRemovedWithItsPage() throws {
+        let target = UUID()
+        var text = try #require(try ComponentCatalog.load().makeElement(of: .text))
+        text.properties.action = .goTo(screenID: target)
+        var screen = PrototypeScreen(name: "Test", elements: [text])
+
+        screen.removeLinks(to: target)
+
+        #expect(screen.elements[0].properties.action == ElementAction.none)
+    }
+
     @Test func actionSurvivesSaving() throws {
         let id = UUID()
         var properties = ElementProperties()
