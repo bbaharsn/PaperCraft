@@ -47,6 +47,8 @@ final class EditorViewModel {
     @ObservationIgnored private var lastChangeKey: String?
     /// Son "Kutuyu çöz"den hemen sonraki ekran ve çözülen kutu. Ekran hâlâ buysa geri al kutuyu yeniden seçer.
     @ObservationIgnored var ungroupUndoHint: (screenAfter: PrototypeScreen, box: UUID)?
+    /// Toplu boyutlandırma başladığındaki ekran; boyutlandırılmıyorsa `nil`.
+    @ObservationIgnored var multiResizeStart: PrototypeScreen?
     /// Geri al / yinele ve öne getirme sırasında kayıt tutulmaz.
     @ObservationIgnored private var isRecordingPaused = false
     /// Şu anki zaman; testlerde saati elle ilerletmek için değiştirilir.
@@ -480,7 +482,7 @@ final class EditorViewModel {
     /// Katalogdaki en küçük boyut; katalogda yoksa Apple'ın önerdiği 44 pt dokunma alanı.
     /// Kaydırıcıda açık ikon/değer yazısı varsa onlar da eklenir, çubuk ezilmesin.
     /// Büyük başlıklı üst bar, başlığı sığacak kadar yüksek kalır.
-    private func minimumSize(of element: CanvasElement) -> CGSize {
+    func minimumSize(of element: CanvasElement) -> CGSize {
         guard let minSize = catalog.definition(for: element.type)?.minSize else {
             return CGSize(width: 44, height: 44)
         }

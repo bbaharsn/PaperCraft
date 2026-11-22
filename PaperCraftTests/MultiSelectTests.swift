@@ -161,6 +161,47 @@ struct MultiSelectTests {
         #expect(editor.multiSelection == [symbol])
     }
 
+    /// Toplu seçim köşeden çekilince hepsi aynı oranla büyür; bütün sürükleme tek geri al adımıdır.
+    @Test func resizingMultiSelectionScalesAllAndIsOneUndoStep() throws {
+        let a = element(.button, x: 0.1, y: 0.4, width: 0.2, height: 0.06)
+        let b = element(.button, x: 0.4, y: 0.5, width: 0.2, height: 0.06)
+        let editor = try editor([a, b])
+        let before = editor.screen
+        editor.toggleMultiSelectMode()
+        editor.toggleInMultiSelection(a.id)
+        editor.toggleInMultiSelection(b.id)
+        let groupWidth = (0.6 - 0.1) * editor.canvasSize.width
+
+        editor.beginMultiSelectionResize()
+        editor.resizeMultiSelection(from: .bottomTrailing, by: CGSize(width: groupWidth * 0.1, height: 0))
+        editor.resizeMultiSelection(from: .bottomTrailing, by: CGSize(width: groupWidth * 0.2, height: 0))
+        editor.endMultiSelectionResize()
+
+        let frames = editor.screen.elements.map(\.frame)
+        #expect(abs(frames[0].x - 0.1) < 1e-9)                       // karşı köşe yerinde
+        #expect(abs(frames[0].width - 0.24) < 1e-9)                  // 1,2 kat (son çeviri esas)
+        #expect(abs(frames[1].x - (0.1 + 0.3 * 1.2)) < 1e-9)          // aradaki boşluk da büyür
+        #expect(abs(frames[1].height - 0.072) < 1e-9)                // oran korunur
+        #expect(editor.undoStack.count == 1)
+        editor.undo()
+        #expect(editor.screen == before)
+    }
+
+    @Test func resizingMultiSelectionScalesBoxContents() throws {
+        let (editor, box, symbol, _) = try boxScene()
+        editor.toggleMultiSelectMode()
+        editor.toggleInMultiSelection(box)
+        let groupWidth = 0.6 * editor.canvasSize.width
+
+        editor.beginMultiSelectionResize()
+        editor.resizeMultiSelection(from: .bottomTrailing, by: CGSize(width: groupWidth * 0.25, height: 0))
+        editor.endMultiSelectionResize()
+
+        let symbolFrame = try #require(editor.screen.elements.first { $0.id == symbol }?.frame)
+        #expect(abs(symbolFrame.width - 0.125) < 1e-9)
+        #expect(abs(symbolFrame.x - (0.1 + 0.05 * 1.25)) < 1e-9)
+    }
+
     @Test func cannotUngroupEmptyBoxOrNonBox() throws {
         let emptyBox = element(.box, x: 0.1, y: 0.6, width: 0.3, height: 0.1)
         let (editor, _, _, button) = try boxScene()

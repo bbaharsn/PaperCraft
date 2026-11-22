@@ -492,6 +492,15 @@ struct CanvasView: View {
             GroupOutline(rect: rect, scale: scale)
                 .offset(isMoving ? CGSize(width: dragOffset.width, height: dragOffset.height + edgeScrolled) : .zero)
                 .allowsHitTesting(false)
+            // Köşelerden çekince bütün seçim oranı korunarak büyür/küçülür (taşınırken gizli)
+            if !isMoving {
+                GroupResizeHandles(rect: rect, scale: scale,
+                                   onBegin: { viewModel.beginMultiSelectionResize() },
+                                   onChange: { corner, translation in
+                                       viewModel.resizeMultiSelection(from: corner, by: translation)
+                                   },
+                                   onEnd: { viewModel.endMultiSelectionResize() })
+            }
         }
     }
 

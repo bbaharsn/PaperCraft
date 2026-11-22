@@ -121,6 +121,53 @@ extension EditorViewModel {
         ungroupUndoHint = (screen, boxID)
     }
 
+    /// Toplu boyutlandırma başlar: başlangıç hali saklanır, sürüklerken her şey ona göre hesaplanır.
+    func beginMultiSelectionResize() {
+        multiResizeStart = screen
+    }
+
+    /// Toplu seçimi (kutuların içindekiler dahil) bir köşesinden oranı koruyarak ölçekler.
+    /// `translation` parmağın başlangıçtan beri toplam hareketi (sayfa point'i). Hiçbir eleman en küçük
+    /// boyutunun altına inmez. Sürükleme bitene kadar geri al'a yazılmaz.
+    func resizeMultiSelection(from corner: ResizeCorner, by translation: CGSize) {
+        guard let start = multiResizeStart else { return }
+        let group = BoxContents.group(startingFrom: multiSelection, in: start.elements, rect: pointRect(of:))
+        let members = start.elements.filter { group.contains($0.id) }
+        guard !members.isEmpty else { return }
+
+        let rect = members
+            .map { SnapGuides.boundingBox(pointRect(of: $0), degrees: $0.properties.rotation ?? 0) }
+            .reduce(CGRect.null) { $0.union($1) }
+        // En küçük eleman sınırına gelince grup durur; zaten sınırın altındaysa büyümeye zorlanmaz.
+        let minimumScale = min(1, members.map { member in
+            let size = minimumSize(of: member), current = pointRect(of: member)
+            return max(size.width / current.width, size.height / current.height)
+        }.max() ?? 0)
+        let scale = GroupResize.scale(dragging: corner, by: translation, rect: rect,
+                                      canvasWidth: canvasSize.width, minimumScale: minimumScale)
+        let anchor = GroupResize.anchor(of: corner, in: rect)
+
+        var elements = start.elements
+        for index in elements.indices where group.contains(elements[index].id) {
+            let scaled = GroupResize.scaled(pointRect(of: elements[index]), by: scale, around: anchor)
+            elements[index].frame = NormalizedFrame(x: scaled.minX / canvasSize.width,
+                                                    y: scaled.minY / canvasSize.height,
+                                                    width: scaled.width / canvasSize.width,
+                                                    height: scaled.height / canvasSize.height)
+        }
+        withoutRecording { screen.elements = elements }
+    }
+
+    /// Toplu boyutlandırma biter: bütün sürükleme tek geri al adımı olarak yazılır.
+    func endMultiSelectionResize() {
+        guard let start = multiResizeStart else { return }
+        multiResizeStart = nil
+        let final = screen
+        guard final != start else { return }
+        withoutRecording { screen = start }
+        screen = final
+    }
+
     /// Toplu seçimdeki her şeyi (kutuların içindekiler dahil) tek geri al adımında siler.
     func deleteMultiSelection() {
         let doomed = movingGroup(for: multiSelection)
