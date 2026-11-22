@@ -75,8 +75,12 @@ final class EditorViewModel {
     /// Kutu seçilince içindekiler de onunla öne gelir; yoksa kutu onları örterdi.
     /// Öne getirme geri al adımı sayılmaz; yoksa her dokunuş bir adım olurdu.
     func select(_ id: UUID?) {
+        // Silinen eleman ekrandan solarken hâlâ dokunuş alabilir; sayfada olmayan bir şey seçilmez.
+        guard let id, screen.elements.contains(where: { $0.id == id }) else {
+            selectedElementID = nil
+            return
+        }
         selectedElementID = id
-        guard let id else { return }
         bringToFront(movingGroup(for: [id]))
     }
 
@@ -229,8 +233,13 @@ final class EditorViewModel {
     /// Seçili elemanın özelliklerini değiştirir. Seçili eleman yoksa hiçbir şey yapmaz.
     /// Kullanım: `updateSelectedProperties { $0.text = "Giriş Yap" }`
     func updateSelectedProperties(_ change: (inout ElementProperties) -> Void) {
-        guard let index = screen.elements.firstIndex(where: { $0.id == selectedElementID }) else { return }
-        change(&screen.elements[index].properties)
+        let targets = propertyTargetIDs   // toplu düzenlemede birden fazla eleman
+        guard !targets.isEmpty else { return }
+        var elements = screen.elements
+        for index in elements.indices where targets.contains(elements[index].id) {
+            change(&elements[index].properties)
+        }
+        screen.elements = elements   // tek atama: tek geri al adımı
     }
 
     /// Elemanı normalize miktarda kaydırır. Yanlardan ve yukarıdan taşmaz; aşağıda sayfa uzar.
@@ -311,15 +320,20 @@ final class EditorViewModel {
     }
 
     /// Seçili butonun şeklini değiştirir. Daireye geçerken çerçeve, ortası sabit kalarak kareye döner.
+    /// Toplu düzenlemede seçimdeki bütün butonlara uygulanır.
     func setSelectedButtonShape(_ shape: ButtonShape) {
-        guard let index = screen.elements.firstIndex(where: { $0.id == selectedElementID }) else { return }
-        screen.elements[index].properties.shape = shape
-
-        guard shape == .circle else { return }
-        let rect = pointRect(of: screen.elements[index])
-        let side = min(rect.width, rect.height)
-        setPointRect(CGRect(x: rect.midX - side / 2, y: rect.midY - side / 2, width: side, height: side),
-                     at: index)
+        let targets = propertyTargetIDs
+        guard !targets.isEmpty else { return }
+        var elements = screen.elements
+        for index in elements.indices where targets.contains(elements[index].id) {
+            elements[index].properties.shape = shape
+            guard shape == .circle else { continue }
+            let rect = pointRect(of: elements[index])
+            let side = min(rect.width, rect.height)
+            elements[index].frame = normalizedFrame(for: CGRect(x: rect.midX - side / 2, y: rect.midY - side / 2,
+                                                                width: side, height: side))
+        }
+        screen.elements = elements
     }
 
     // MARK: - Üst bar
@@ -451,20 +465,24 @@ final class EditorViewModel {
 
     /// Kaydırıcının bir parçasını açıp kapatır ve aradaki genişlik farkını çerçeveye ekler.
     /// Sol kenar yerinde kalır; ekrandan taşacaksa eleman sola kayar.
+    /// Toplu düzenlemede seçimdeki bütün kaydırıcılara uygulanır.
     private func changeSliderParts(_ change: (inout ElementProperties) -> Void) {
-        guard let index = screen.elements.firstIndex(where: { $0.id == selectedElementID }),
-              screen.elements[index].type == .slider else { return }
+        let targets = propertyTargetIDs
+        var elements = screen.elements
+        for index in elements.indices where targets.contains(elements[index].id) && elements[index].type == .slider {
+            let oldExtra = SliderLayout.extraWidth(for: elements[index].properties)
+            change(&elements[index].properties)
+            let newExtra = SliderLayout.extraWidth(for: elements[index].properties)
 
-        let oldExtra = SliderLayout.extraWidth(for: screen.elements[index].properties)
-        change(&screen.elements[index].properties)
-        let newExtra = SliderLayout.extraWidth(for: screen.elements[index].properties)
-
-        let element = screen.elements[index]
-        var rect = pointRect(of: element)
-        rect.size.width = min(max(rect.width + newExtra - oldExtra, minimumSize(of: element).width),
-                              canvasSize.width)
-        rect.origin.x = min(rect.minX, canvasSize.width - rect.width)
-        setPointRect(rect, at: index)
+            let element = elements[index]
+            var rect = pointRect(of: element)
+            rect.size.width = min(max(rect.width + newExtra - oldExtra, minimumSize(of: element).width),
+                                  canvasSize.width)
+            rect.origin.x = min(rect.minX, canvasSize.width - rect.width)
+            elements[index].frame = normalizedFrame(for: rect)
+        }
+        guard elements != screen.elements else { return }
+        screen.elements = elements
     }
 
     /// Elemanın alt kenarının inebileceği en aşağı nokta (point): sabit barda ekranın altı, diğerlerinde sınır yok.
@@ -473,10 +491,13 @@ final class EditorViewModel {
     }
 
     private func setPointRect(_ rect: CGRect, at index: Int) {
-        screen.elements[index].frame = NormalizedFrame(x: rect.minX / canvasSize.width,
-                                                       y: rect.minY / canvasSize.height,
-                                                       width: rect.width / canvasSize.width,
-                                                       height: rect.height / canvasSize.height)
+        screen.elements[index].frame = normalizedFrame(for: rect)
+    }
+
+    /// Point dikdörtgenin sayfa boyutuna göre normalize hali.
+    private func normalizedFrame(for rect: CGRect) -> NormalizedFrame {
+        NormalizedFrame(x: rect.minX / canvasSize.width, y: rect.minY / canvasSize.height,
+                        width: rect.width / canvasSize.width, height: rect.height / canvasSize.height)
     }
 
     /// Katalogdaki en küçük boyut; katalogda yoksa Apple'ın önerdiği 44 pt dokunma alanı.

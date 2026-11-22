@@ -12,6 +12,8 @@ struct SelectionToolbar: View {
     var onWrap: (() -> Void)? = nil
     /// `nil` değilse "Kutuyu çöz" gösterilir: kutuyu siler, içindekiler kalır.
     var onUngroup: (() -> Void)? = nil
+    /// `nil` değilse toplu seçimde yuvarlak Özellikler düğmesi gösterilir (seçilenler aynı türdeyse).
+    var onEditProperties: (() -> Void)? = nil
     /// `nil` ise "Çoğalt" gösterilmez (ör. üst bar ve alt menü çoğaltılmaz).
     var onDuplicate: (() -> Void)? = nil
     let onDelete: () -> Void
@@ -28,6 +30,19 @@ struct SelectionToolbar: View {
                         .background(Theme.panel, in: Capsule())
                         .overlay(Capsule().stroke(Theme.ink, lineWidth: 1.5))
                 }
+            }
+
+            if let onEditProperties {
+                // Yer kaplamasın diye yalnızca ikon; "Kutuya al" ve "Sil" ile birlikte dar ekrana sığar.
+                Button(action: onEditProperties) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Theme.ink)
+                        .frame(width: 40, height: 40)
+                        .background(Theme.panel, in: Circle())
+                        .overlay(Circle().stroke(Theme.ink, lineWidth: 1.5))
+                }
+                .accessibilityLabel("Özellikler")
             }
 
             if let onUngroup {
@@ -73,6 +88,7 @@ struct SelectionToolbar: View {
         SelectionToolbar(onDuplicate: {}, onDelete: {})
         SelectionToolbar(onDelete: {})
         SelectionToolbar(onWrap: {}, onDelete: {})
+        SelectionToolbar(onWrap: {}, onEditProperties: {}, onDelete: {})
         SelectionToolbar(onUngroup: {}, onDuplicate: {}, onDelete: {})
     }
     .padding()

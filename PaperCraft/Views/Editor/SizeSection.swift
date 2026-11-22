@@ -6,15 +6,18 @@
 import SwiftUI
 
 /// Özellikler sayfalarındaki "Boyut" bölümü: genişlik × yükseklik (point).
+/// Toplu düzenlemede gösterilmez; orada boyut ortak çerçevenin köşelerinden değişir.
 struct SizeSection: View {
     let viewModel: EditorViewModel
 
     var body: some View {
-        Section("Boyut") {
-            HStack {
-                sizeField("Genişlik", value: viewModel.sizeBinding(\.width))
-                Text("×").foregroundStyle(.secondary)
-                sizeField("Yükseklik", value: viewModel.sizeBinding(\.height))
+        if !viewModel.isMultiSelecting {
+            Section("Boyut") {
+                HStack {
+                    sizeField("Genişlik", value: viewModel.sizeBinding(\.width))
+                    Text("×").foregroundStyle(.secondary)
+                    sizeField("Yükseklik", value: viewModel.sizeBinding(\.height))
+                }
             }
         }
     }

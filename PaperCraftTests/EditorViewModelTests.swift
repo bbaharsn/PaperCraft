@@ -44,6 +44,19 @@ struct EditorViewModelTests {
         #expect(editor.selectedElementID == nil)
     }
 
+    /// Silinen eleman ekrandan solarken dokunuş alabilir; ona dokunmak sayfada olmayan bir
+    /// elemanı seçmemeli (yoksa araç çubuğunda yalnızca "Sil" kalır, seçim çizgisi görünmez).
+    @Test func selectingDeletedElementClearsSelection() throws {
+        let editor = try makeEditor()
+        editor.addElement(of: .button)
+        let deleted = try #require(editor.selectedElementID)
+        editor.deleteSelectedElement()
+
+        editor.select(deleted)
+
+        #expect(editor.selectedElementID == nil)
+    }
+
     @Test func deletingWithoutSelectionDoesNothing() throws {
         let editor = try makeEditor()
         editor.addElement(of: .text)

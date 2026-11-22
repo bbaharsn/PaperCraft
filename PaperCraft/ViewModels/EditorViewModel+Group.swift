@@ -24,6 +24,7 @@ extension EditorViewModel {
         } else {
             multiSelection.insert(id)
         }
+        refreshMultiSelectionProperties()
     }
 
     func clearMultiSelection() {
@@ -36,7 +37,10 @@ extension EditorViewModel {
     func selectInMarquee(_ marquee: CGRect, adding base: Set<UUID>) {
         let hits = MarqueeSelection.ids(in: marquee, elements: screen.elements, rect: pointRect(of:))
         let updated = base.union(hits)
-        if updated != multiSelection { multiSelection = updated }
+        if updated != multiSelection {
+            multiSelection = updated
+            refreshMultiSelectionProperties()
+        }
     }
 
     /// Verilen elemanlar taşınınca birlikte gelecek olanlar: kendileri ve içlerindeki kutuların içindekiler.

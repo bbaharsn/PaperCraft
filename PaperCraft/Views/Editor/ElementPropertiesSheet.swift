@@ -75,7 +75,13 @@ struct ElementPropertiesSheet: View {
         }
     }
 
+    /// Toplu düzenlemede başına kaç eleman düzenlendiği yazılır: "3 Buton".
     private var title: String {
+        let count = viewModel.propertyTargetIDs.count
+        return count > 1 ? "\(count) \(typeTitle)" : typeTitle
+    }
+
+    private var typeTitle: String {
         switch type {
         case .text: "Metin"
         case .button: "Buton"

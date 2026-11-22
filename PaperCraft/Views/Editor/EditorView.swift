@@ -84,6 +84,11 @@ struct EditorView: View {
         )
     }
 
+    /// Toplu seçimdekiler aynı türdeyse ve o türün Özellikler sayfası varsa birlikte düzenlenebilir.
+    var canEditMultiSelection: Bool {
+        viewModel.multiSelectionEditType.map(ElementPropertiesSheet.hasSheet(for:)) ?? false
+    }
+
     var body: some View {
         Group {
             if usesWideLayout {
@@ -102,6 +107,10 @@ struct EditorView: View {
             if newID == nil { wantsProperties = false } else { isEditingBackground = false }
             // Geniş ekranda Özellikler paneli seçimle birlikte açılır; çift dokunmak gerekmez.
             if usesWideLayout, newID != nil, !viewModel.isMultiSelecting { wantsProperties = true }
+        }
+        // Toplu seçimin Özellikler'i kapanınca seçim yine yalnızca toplu seçim olur.
+        .onChange(of: wantsProperties) { _, wants in
+            if !wants { viewModel.closeMultiSelectionProperties() }
         }
         // Otomatik kaydetme: ekran her değiştiğinde projeye yazılır.
         .onChange(of: viewModel.screen) { _, newScreen in
@@ -235,6 +244,10 @@ struct EditorView: View {
                     if !viewModel.multiSelection.isEmpty {
                         // Toplu modda çoğaltma yok; Kutuya al seçilenleri saran kutu ekler, Sil hepsini siler.
                         SelectionToolbar(onWrap: { viewModel.wrapMultiSelectionInBox() },
+                                         onEditProperties: canEditMultiSelection ? {
+                                             viewModel.openMultiSelectionProperties()
+                                             wantsProperties = true
+                                         } : nil,
                                          onDelete: { viewModel.deleteMultiSelection() })
                             .padding(.bottom, 32)
                             .transition(.scale.combined(with: .opacity))
