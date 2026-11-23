@@ -29,6 +29,9 @@ struct CanvasView: View {
     /// Şu an birlikte sürüklenen elemanlar (kutu + içindekiler ya da toplu seçim) ve parmağın ne kadar
     /// kaydığı (tuvalin kendi point'leri). Sürükleme bitene kadar model değişmez; sadece görüntü kayar.
     @State private var draggingIDs: Set<UUID> = []
+    /// Bir elemanın üstünden başlayan sürüklemenin taşıdığı eleman; başta bir kez belirlenir.
+    /// Sürükleme sırasında seçim değişse de (dokunuş algılayıcısı) taşınan eleman değişmez.
+    @State private var dragLeadID: UUID?
     @State private var dragOffset: CGSize = .zero
     /// Sürüklenen eleman şu an hangi hizalara yapışık; çizgiler bunlardan çizilir.
     @State private var snapGuides: [SnapGuide] = []
@@ -236,6 +239,9 @@ struct CanvasView: View {
         })
         // Toplu seçimde boş yerden sürüklemek seçim çerçevesi çizer (sayfayı iki parmakla kaydırmak serbest).
         .gesture(marqueeGesture, including: viewModel.isMultiSelecting ? .all : .none)
+        // Bir eleman seçiliyken boş yerden sürüklemek onu taşır (sayfa iki parmakla kayar).
+        .gesture(selectionMoveGesture,
+                 including: !viewModel.isMultiSelecting && viewModel.selectedElementID != nil ? .all : .none)
     }
 
     /// Seçim çerçevesi: başlangıçtan parmağın şu anki yerine (sayfa point'i). Çizilmiyorsa nil.
@@ -290,6 +296,30 @@ struct CanvasView: View {
                 stopEdgeScroll()
                 edgeScrolled = 0
                 marqueeStart = nil
+                oneFingerCancelled = false
+            }
+    }
+
+    /// Seçili eleman, parmağın altında olmasa da boş yerden sürüklenerek taşınır.
+    private var selectionMoveGesture: some Gesture {
+        DragGesture(minimumDistance: 10, coordinateSpace: .global)
+            .onChanged { value in
+                guard !isPinching, !oneFingerCancelled else { return }
+                if groupDragLead == nil {
+                    guard let id = viewModel.dragTargetID(touching: nil),
+                          let lead = viewModel.screen.elements.first(where: { $0.id == id }) else { return }
+                    groupDragLead = lead
+                }
+                guard let lead = groupDragLead else { return }
+                dragChanged(lead: lead, translation: value.translation, fingerY: value.location.y,
+                            scale: cardFrame.width / referenceSize.width)
+            }
+            .onEnded { value in
+                if let lead = groupDragLead {
+                    dragEnded(lead: lead, translation: value.translation,
+                              scale: cardFrame.width / referenceSize.width)
+                    groupDragLead = nil
+                }
                 oneFingerCancelled = false
             }
     }
@@ -369,6 +399,7 @@ struct CanvasView: View {
         }
         gestureStart = nil
         groupDragLead = nil
+        dragLeadID = nil
         draggingIDs = []
         dragOffset = .zero
         snapGuides = []
@@ -442,6 +473,8 @@ struct CanvasView: View {
                     // Tek dokunuş beklemeden hemen seçsin diye çift dokunuşla aynı anda dinlenir.
                     // Toplu seçimde dokunmak elemanı seçime ekler ya da çıkarır.
                     .simultaneousGesture(TapGesture().onEnded {
+                        // Sürükleme sürerken gelen dokunuş seçimi değiştirmez (seçili başka eleman taşınıyor olabilir)
+                        guard draggingIDs.isEmpty, dragLeadID == nil else { return }
                         if viewModel.isMultiSelecting {
                             viewModel.toggleInMultiSelection(element.id)
                         } else {
@@ -526,16 +559,28 @@ struct CanvasView: View {
 
     /// Sürüklerken sadece görüntüyü kaydırır, bırakınca modeli günceller.
     /// Parmak ekran point'iyle hareket eder; tuval küçültüldüğü için `scale`'e böleriz.
+    /// Bir eleman seçiliyken başka bir elemanın üstünden başlayan sürükleme de seçili elemanı taşır
+    /// (bkz. `EditorViewModel.dragTargetID`).
     private func dragGesture(for element: CanvasElement, scale: CGFloat) -> some Gesture {
         DragGesture(coordinateSpace: .global)
             .onChanged { value in
                 guard !isPinching, !oneFingerCancelled else { return }
-                dragChanged(lead: element, translation: value.translation, fingerY: value.location.y, scale: scale)
+                if dragLeadID == nil {
+                    dragLeadID = viewModel.dragTargetID(touching: element.id)
+                }
+                dragChanged(lead: dragLead(or: element), translation: value.translation,
+                            fingerY: value.location.y, scale: scale)
             }
             .onEnded { value in
                 oneFingerCancelled = false
-                dragEnded(lead: element, translation: value.translation, scale: scale)
+                dragEnded(lead: dragLead(or: element), translation: value.translation, scale: scale)
+                dragLeadID = nil
             }
+    }
+
+    /// Sürüklemenin taşıdığı eleman (`dragLeadID`); belirlenmemişse dokunulan.
+    private func dragLead(or element: CanvasElement) -> CanvasElement {
+        viewModel.screen.elements.first { $0.id == dragLeadID } ?? element
     }
 
     /// Sürükleme sürerken: ilk adımda taşınacakları belirler, sonra görüntüyü hizaya yapıştırarak kaydırır.

@@ -19,7 +19,7 @@ struct TextStyleTests {
         #expect(text.properties.fontWeight == .regular)
         #expect(text.properties.fontName == FontFamilies.system)
         #expect(text.properties.isItalic == false)
-        #expect(text.properties.textAlignment == .leading)
+        #expect(text.properties.textAlignment == .center)
         #expect(text.properties.contentColor == "#111111")
     }
 

@@ -187,6 +187,30 @@ struct MultiSelectTests {
         #expect(editor.screen == before)
     }
 
+    /// Bir eleman seçiliyken sürükleme nereden başlarsa başlasın (boş yer, başka eleman) seçili eleman taşınır.
+    @Test func dragMovesSelectedElementFromAnywhere() throws {
+        let a = element(.symbol, x: 0.1, y: 0.4, width: 0.05, height: 0.03)
+        let b = element(.symbol, x: 0.16, y: 0.4, width: 0.05, height: 0.03)
+        let editor = try editor([a, b])
+
+        #expect(editor.dragTargetID(touching: b.id) == b.id)   // seçim yok: dokunulan
+        #expect(editor.dragTargetID(touching: nil) == nil)     // seçim yok, boş yer: hiçbiri
+
+        editor.select(a.id)
+        #expect(editor.dragTargetID(touching: b.id) == a.id)
+        #expect(editor.dragTargetID(touching: nil) == a.id)
+
+        editor.toggleMultiSelectMode()   // toplu seçimin kendi kuralları
+        #expect(editor.dragTargetID(touching: b.id) == b.id)
+    }
+
+    /// Yeni metin ortaya hizalı gelir.
+    @Test func newTextIsCentered() throws {
+        let editor = try editor([])
+        editor.addElement(of: .text)
+        #expect(editor.selectedElement?.properties.textAlignment == .center)
+    }
+
     /// Toplu büyütmede yazılar da aynı oranda büyür.
     @Test func resizingMultiSelectionScalesContent() throws {
         let a = element(.button, x: 0.1, y: 0.4, width: 0.2, height: 0.06)

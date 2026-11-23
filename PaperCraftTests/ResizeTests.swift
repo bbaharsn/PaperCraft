@@ -122,7 +122,7 @@ struct ResizeTests {
         editor.updateSelectedProperties { $0.text = "Çok daha uzun bir yazı" }
         let long = try rect(editor)
         #expect(long.width > short.width + 50)
-        #expect(isClose(long.minX, short.minX))   // sola yaslı: sol kenar yerinde
+        #expect(isClose(long.midX, short.midX))   // ortaya hizalı: ortası yerinde
 
         editor.updateSelectedProperties { $0.contentColor = "#FF0000" }
         #expect(try rect(editor) == long)

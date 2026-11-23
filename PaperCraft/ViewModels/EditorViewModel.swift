@@ -86,6 +86,16 @@ final class EditorViewModel {
         bringToFront(movingGroup(for: [id]))
     }
 
+    /// Tek parmakla sürükleme başlayınca hangi eleman taşınır? Bir eleman seçiliyken, sürükleme nereden
+    /// başlarsa başlasın (boş yer ya da başka bir eleman) seçili eleman taşınır; böylece küçük elemanlar
+    /// parmağın altında kalmadan yan yana dizilir. Seçim yoksa dokunulan eleman (`touched`) taşınır,
+    /// boş yerse hiçbiri. Toplu seçimin kendi kuralları var; orada dokunulan eleman esas alınır.
+    func dragTargetID(touching touched: UUID?) -> UUID? {
+        guard !isMultiSelecting, let selected = selectedElementID,
+              screen.elements.contains(where: { $0.id == selected }) else { return touched }
+        return selected
+    }
+
     // MARK: - Geri al / Yinele
 
     var canUndo: Bool { !undoStack.isEmpty }
