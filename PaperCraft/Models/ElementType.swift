@@ -27,3 +27,14 @@ nonisolated enum ElementType: String, Codable {
         self = ElementType(rawValue: rawValue) ?? .unknown
     }
 }
+
+extension ElementType {
+    /// Çerçeve büyüyünce içi (yazı, ikon, kontrol) de büyüyen türler.
+    /// Görsel, sembol ve kutu zaten çerçeveyi doldurur; üst bar ve alt menü iOS'un sabit boyutlu barları.
+    var scalesContentWithFrame: Bool {
+        switch self {
+        case .text, .button, .textField, .switch, .slider: true
+        case .image, .symbol, .box, .navigationBar, .tabBar, .unknown: false
+        }
+    }
+}

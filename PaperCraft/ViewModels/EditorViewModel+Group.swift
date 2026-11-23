@@ -132,7 +132,7 @@ extension EditorViewModel {
 
     /// Toplu seçimi (kutuların içindekiler dahil) bir köşesinden oranı koruyarak ölçekler.
     /// `translation` parmağın başlangıçtan beri toplam hareketi (sayfa point'i). Hiçbir eleman en küçük
-    /// boyutunun altına inmez. Sürükleme bitene kadar geri al'a yazılmaz.
+    /// boyutunun altına inmez; yazılar ve kontroller de aynı oranda büyür. Sürükleme bitene kadar geri al'a yazılmaz.
     func resizeMultiSelection(from corner: ResizeCorner, by translation: CGSize) {
         guard let start = multiResizeStart else { return }
         let group = BoxContents.group(startingFrom: multiSelection, in: start.elements, rect: pointRect(of:))
@@ -158,6 +158,9 @@ extension EditorViewModel {
                                                     y: scaled.minY / canvasSize.height,
                                                     width: scaled.width / canvasSize.width,
                                                     height: scaled.height / canvasSize.height)
+            if elements[index].type.scalesContentWithFrame {
+                elements[index].properties.scaleContent(by: scale)
+            }
         }
         withoutRecording { screen.elements = elements }
     }

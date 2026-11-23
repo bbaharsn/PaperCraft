@@ -16,8 +16,8 @@
         "height": 30
       },
       "minSize": {
-        "width": 40,
-        "height": 20
+        "width": 8,
+        "height": 8
       },
       "defaultProperties": {
         "text": "Text",

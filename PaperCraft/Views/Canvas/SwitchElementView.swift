@@ -32,8 +32,8 @@ struct SwitchElementView: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
-            if labelPosition == .trailing { toggle }
+        HStack(spacing: 8 * properties.scale) {
+            if labelPosition == .trailing { scaledToggle }
             // Etiket boşsa yer kaplamasın; anahtar yine aynı kenarda kalır
             Text(label)
                 .foregroundStyle(textColor)
@@ -41,11 +41,33 @@ struct SwitchElementView: View {
                 // Etiket hep anahtardan uzak kenara yaslanır
                 .frame(maxWidth: .infinity,
                        alignment: labelPosition == .leading ? .leading : .trailing)
-            if labelPosition == .leading { toggle }
+            if labelPosition == .leading { scaledToggle }
         }
-        .font(.system(size: 17))
+        .font(.system(size: 17 * properties.scale))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+
+    /// Sistem switch'inin boyutu değişmez; eleman büyütülünce switch de aynı oranda büyütülür
+    /// ve kapladığı yer buna göre ayrılır.
+    @ViewBuilder
+    private var scaledToggle: some View {
+        let scale = properties.scale
+        if scale == 1 {
+            toggle
+        } else {
+            toggle
+                .fixedSize()
+                .scaleEffect(scale)
+                .frame(width: Self.toggleSize.width * scale, height: Self.toggleSize.height * scale)
+        }
+    }
+
+    /// Sistem switch'inin doğal boyutu.
+    #if os(macOS)
+    private static let toggleSize = CGSize(width: 38, height: 22)
+    #else
+    private static let toggleSize = CGSize(width: 51, height: 31)
+    #endif
 
     private var toggle: some View {
         Toggle("", isOn: isOn)

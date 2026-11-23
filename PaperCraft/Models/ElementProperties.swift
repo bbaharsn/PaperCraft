@@ -139,4 +139,10 @@ nonisolated struct ElementProperties: Codable, Equatable {
     /// Kutu, dolgu rengi yerine sayfanın arka planını mı gösterir. Sayfa rengi değişince kutu da değişir;
     /// gradyanda kutunun yerine düşen parça çizilir. Boşsa `fillColor` kullanılır.
     var matchesPageBackground: Bool?
+
+    // MARK: - Ölçek
+
+    /// Yazı, ikon, boşluk ve kontrollerin büyüklük çarpanı. Eleman köşesinden büyütülünce yükseklikle aynı
+    /// oranda değişir (bkz. `ElementType.scalesContentWithFrame`). Boşsa 1.
+    var contentScale: Double?
 }

@@ -13,11 +13,16 @@ struct SelectionOverlay: View {
     let scale: CGFloat
     /// Bir köşe çekildikçe parmağın son hareketini (point) bildirir.
     let onResize: (ResizeCorner, CGSize) -> Void
+    /// Köşe bırakılınca çağrılır.
+    var onResizeEnd: () -> Void = {}
     /// Döndürme tutamacı çekildikçe yeni açıyı (derece) bildirir; `nil` ise tutamaç çizilmez.
     var onRotate: ((Double) -> Void)? = nil
 
     /// Şu an çekilen köşe; çekilmiyorsa `nil`.
     @State private var activeCorner: ResizeCorner?
+    /// Köşe çekilirken `true`. Sürükleme iptal olsa da (ikinci parmak, kaydırma) kendiliğinden `false`'a döner;
+    /// `onEnded` iptalde çağrılmaz, eski hareket bir sonraki çekişe karışmasın diye bitişi buradan anlarız.
+    @GestureState private var isResizing = false
     /// Sürüklemenin bir önceki adımı; her adımda sadece aradaki farkı göndeririz.
     @State private var lastTranslation: CGSize = .zero
     /// Döndürme başladığındaki açı ve tutamacın merkeze göre yeri (ekran point'i); döndürülmüyorsa `nil`.
@@ -103,7 +108,7 @@ struct SelectionOverlay: View {
                         .gesture(rotateGesture(in: size, onRotate: onRotate))
                 }
 
-                if activeCorner != nil {
+                if activeCorner != nil, isResizing {
                     label("\(Int(size.width.rounded())) × \(Int(size.height.rounded()))")
                         .position(x: size.width / 2, y: size.height + 16 / scale)
                 } else if rotationStart != nil {
@@ -112,6 +117,12 @@ struct SelectionOverlay: View {
                 }
             }
             .frame(width: size.width, height: size.height)
+        }
+        .onChange(of: isResizing) { _, resizing in
+            guard !resizing else { return }
+            activeCorner = nil
+            lastTranslation = .zero
+            onResizeEnd()
         }
     }
 
@@ -183,6 +194,7 @@ struct SelectionOverlay: View {
 
     private func resizeGesture(for corner: ResizeCorner) -> some Gesture {
         DragGesture(minimumDistance: 1, coordinateSpace: .global)
+            .updating($isResizing) { _, state, _ in state = true }
             .onChanged { value in
                 activeCorner = corner
                 // Parmak ekran point'iyle hareket eder; canvas küçültüldüğü için `scale`'e böleriz.

@@ -29,7 +29,7 @@ struct TextFieldElementView: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 8 * properties.scale) {
             if iconPosition == .leading { icon }
             if let interactive {
                 input(interactive)
@@ -41,8 +41,8 @@ struct TextFieldElementView: View {
             }
             if iconPosition == .trailing { icon }
         }
-        .font(.system(size: 17))
-        .padding(.horizontal, border == .underline || border == .none ? 4 : 12)
+        .font(.system(size: 17 * properties.scale))
+        .padding(.horizontal, (border == .underline || border == .none ? 4 : 12) * properties.scale)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background { background }
     }

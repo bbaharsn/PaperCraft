@@ -37,7 +37,9 @@ enum ScreenChange {
         if old.type != new.type { fields.append("type") }
         if old.frame != new.frame { fields.append("frame") }
         if old.properties != new.properties {
+            // İçerik ölçeği çerçeveyle birlikte değişir; boyutlandırmanın bütün adımları aynı anahtarı alsın.
             fields += differingLabels(old.properties, new.properties)
+                .filter { $0 != "contentScale" || old.frame == new.frame }
         }
         return fields
     }

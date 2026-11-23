@@ -27,27 +27,45 @@ struct SliderElementView: View {
     }
 
     var body: some View {
-        HStack(spacing: SliderLayout.spacing) {
+        HStack(spacing: SliderLayout.spacing * scale) {
             if showsSideIcons { icon(properties.minSymbolName ?? "minus") }
-            Slider(value: value, in: properties.sliderRange)
-                .tint(tintColor)
+            slider
             if showsSideIcons { icon(properties.maxSymbolName ?? "plus") }
             if showsValue {
                 Text(properties.sliderValue, format: .number.precision(.fractionLength(0...1)))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
-                    .frame(width: SliderLayout.valueWidth, alignment: .trailing)
+                    .frame(width: SliderLayout.valueWidth * scale, alignment: .trailing)
             }
         }
-        .font(.system(size: 17))
+        .font(.system(size: 17 * scale))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func icon(_ name: String) -> some View {
         Image(systemName: name)
             .foregroundStyle(.secondary)
-            .frame(width: SliderLayout.iconWidth)
+            .frame(width: SliderLayout.iconWidth * scale)
+    }
+
+    private var scale: CGFloat { properties.scale }
+
+    /// Sistem slider'ının topuzu sabit boyutlu; eleman büyütülünce slider, kendi genişliğinin
+    /// `1 / scale`'i kadar çizilip büyütülür. Böylece çubuk yine bütün yeri kaplar.
+    @ViewBuilder
+    private var slider: some View {
+        let control = Slider(value: value, in: properties.sliderRange).tint(tintColor)
+        if scale == 1 {
+            control
+        } else {
+            GeometryReader { proxy in
+                control
+                    .frame(width: proxy.size.width / scale)
+                    .scaleEffect(scale)
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+            }
+        }
     }
 }
 

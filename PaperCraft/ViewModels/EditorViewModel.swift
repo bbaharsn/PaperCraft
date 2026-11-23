@@ -49,6 +49,8 @@ final class EditorViewModel {
     @ObservationIgnored var ungroupUndoHint: (screenAfter: PrototypeScreen, box: UUID)?
     /// Toplu boyutlandırma başladığındaki ekran; boyutlandırılmıyorsa `nil`.
     @ObservationIgnored var multiResizeStart: PrototypeScreen?
+    /// Tek elemanın köşesi çekilirken başlangıç hali; çekilmiyorsa `nil`.
+    @ObservationIgnored private var resizeStart: ElementResizeStart?
     /// Geri al / yinele ve öne getirme sırasında kayıt tutulmaz.
     @ObservationIgnored private var isRecordingPaused = false
     /// Şu anki zaman; testlerde saati elle ilerletmek için değiştirilir.
@@ -159,6 +161,10 @@ final class EditorViewModel {
     }
 
     private func insert(_ element: CanvasElement, centeredAt center: CGPoint?) {
+        var element = element
+        if element.type == .text {
+            element.frame = normalizedFrame(for: fittedTextRect(of: element))
+        }
         let newElement = center.map { placed(element, centeredAt: $0) } ?? placedInVisibleArea(element)
         // Sona eklenen en üstte çizilir; kutu duran elemanların üstüne geldiyse onları örtmez, içine alır
         screen.elements = BoxContents.liftingCovered(by: [newElement.id], in: screen.elements + [newElement],
@@ -237,7 +243,11 @@ final class EditorViewModel {
         guard !targets.isEmpty else { return }
         var elements = screen.elements
         for index in elements.indices where targets.contains(elements[index].id) {
+            let before = elements[index]
             change(&elements[index].properties)
+            if before.type == .text, TextFit.changesSize(from: before.properties, to: elements[index].properties) {
+                elements[index].frame = normalizedFrame(for: fittedTextRect(of: elements[index]))
+            }
         }
         screen.elements = elements   // tek atama: tek geri al adımı
     }
@@ -267,16 +277,33 @@ final class EditorViewModel {
     /// Elemanı bir köşesinden çekerek büyütür/küçültür; karşı köşe yerinde kalır.
     /// `screenDelta` parmağın son hareketidir (point). Eleman en küçük boyutun altına inmez,
     /// ekrandan taşmaz; daire buton hep kare kalır. Döndürülmüş elemanda da karşı köşe ekranda yerinde kalır.
+    /// Yazı ve kontroller de büyür (bkz. `setPointRect`); parmak kalkınca `endElementResize()` çağrılır.
     func resizeElement(_ id: UUID, from corner: ResizeCorner, by screenDelta: CGSize) {
         guard let index = screen.elements.firstIndex(where: { $0.id == id }) else { return }
         let element = screen.elements[index]
         let rect = pointRect(of: element)
+        if !isCurrentResize(of: id, at: rect) {
+            resizeStart = ElementResizeStart(id: id, rect: rect, contentScale: element.properties.contentScale,
+                                             lastRect: rect)
+        }
+        defer {
+            if screen.elements.indices.contains(index) {
+                resizeStart?.lastRect = pointRect(of: screen.elements[index])
+            }
+        }
         let minSize = minimumSize(of: element)
 
         // Parmak ekranın eksenlerinde hareket eder; döndürülmüş elemanda bunu elemanın kendi eksenlerine çeviririz.
         let angle = (element.properties.rotation ?? 0) * .pi / 180
         let delta = CGSize(width: screenDelta.width * cos(angle) + screenDelta.height * sin(angle),
                            height: -screenDelta.width * sin(angle) + screenDelta.height * cos(angle))
+
+        resizeStart?.translation.width += delta.width
+        resizeStart?.translation.height += delta.height
+        if element.type == .text, let start = resizeStart {
+            resizeTextProportionally(at: index, from: corner, start: start)
+            return
+        }
 
         var left = rect.minX, right = rect.maxX, top = rect.minY, bottom = rect.maxY
         if corner.isLeading {
@@ -297,7 +324,22 @@ final class EditorViewModel {
         if angle != 0 {
             newRect = keepingOppositeCorner(of: corner, from: rect, to: newRect, angle: angle)
         }
-        setPointRect(newRect, at: index)
+        if let start = resizeStart {
+            setPointRect(newRect, at: index, scalingContentFrom: start.rect, startScale: start.contentScale)
+        }
+    }
+
+    /// Süren bir çekiş bu elemana mı ait ve eleman hâlâ son bıraktığımız yerde mi?
+    private func isCurrentResize(of id: UUID, at rect: CGRect) -> Bool {
+        guard let start = resizeStart, start.id == id else { return false }
+        let last = start.lastRect
+        return abs(last.minX - rect.minX) < 0.01 && abs(last.minY - rect.minY) < 0.01
+            && abs(last.width - rect.width) < 0.01 && abs(last.height - rect.height) < 0.01
+    }
+
+    /// Köşe bırakıldı; sonraki çekiş yeni başlangıç halinden hesaplanır.
+    func endElementResize() {
+        resizeStart = nil
     }
 
     /// Özellikler sayfasından boyut girildiğinde çağrılır; sol üst köşe yerinde kalır.
@@ -316,6 +358,7 @@ final class EditorViewModel {
             newWidth = min(side, canvasSize.width - rect.minX, bottomLimit(for: element) - rect.minY)
             newHeight = newWidth
         }
+        // Yazılan ölçü sadece kutuyu değiştirir; yazıyı büyütmek köşeden çekmekle olur.
         setPointRect(CGRect(x: rect.minX, y: rect.minY, width: newWidth, height: newHeight), at: index)
     }
 
@@ -490,12 +533,29 @@ final class EditorViewModel {
         element.isPinned ? canvasSize.height : .greatestFiniteMagnitude
     }
 
-    private func setPointRect(_ rect: CGRect, at index: Int) {
+    func setPointRect(_ rect: CGRect, at index: Int) {
         screen.elements[index].frame = normalizedFrame(for: rect)
     }
 
+    /// Çerçeveyi değiştirir; yazılı/kontrollü elemanlarda içerik, `startRect`'e göre genişlik ve yükseklik
+    /// oranlarından küçüğü kadar büyür. Böylece yazı hep kutuya sığar: sadece yana ya da sadece aşağı
+    /// çekmek yazıyı değiştirmez (satıra yer açar), çapraz çekmek büyütür.
+    private func setPointRect(_ rect: CGRect, at index: Int, scalingContentFrom startRect: CGRect,
+                              startScale: Double?) {
+        var element = screen.elements[index]
+        element.frame = normalizedFrame(for: rect)
+        if element.type.scalesContentWithFrame, startRect.width > 0, startRect.height > 0 {
+            let factor = min(rect.width / startRect.width, rect.height / startRect.height)
+            element.properties.contentScale = startScale
+            if abs(factor - 1) > 0.0001 {
+                element.properties.scaleContent(by: factor)
+            }
+        }
+        screen.elements[index] = element
+    }
+
     /// Point dikdörtgenin sayfa boyutuna göre normalize hali.
-    private func normalizedFrame(for rect: CGRect) -> NormalizedFrame {
+    func normalizedFrame(for rect: CGRect) -> NormalizedFrame {
         NormalizedFrame(x: rect.minX / canvasSize.width, y: rect.minY / canvasSize.height,
                         width: rect.width / canvasSize.width, height: rect.height / canvasSize.height)
     }

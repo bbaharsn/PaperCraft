@@ -16,11 +16,11 @@ nonisolated enum SliderLayout {
     /// Değer yazısının genişliği
     static let valueWidth: CGFloat = 44
 
-    /// Açık parçaların çubuğa eklediği toplam genişlik.
+    /// Açık parçaların çubuğa eklediği toplam genişlik; eleman büyütüldükçe parçalar da büyür.
     static func extraWidth(for properties: ElementProperties) -> CGFloat {
         var width: CGFloat = 0
         if properties.showsSideIcons ?? false { width += 2 * (iconWidth + spacing) }
         if properties.showsValue ?? false { width += valueWidth + spacing }
-        return width
+        return width * properties.scale
     }
 }

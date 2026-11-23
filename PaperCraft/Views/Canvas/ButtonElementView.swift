@@ -35,10 +35,10 @@ struct ButtonElementView: View {
 
     private var styledLabel: some View {
         label
-            .font(.system(size: 17, weight: .semibold))
+            .font(.system(size: 17 * properties.scale, weight: .semibold))
             .foregroundStyle(labelColor)
             .lineLimit(1)
-            .padding(.horizontal, shape == .circle ? 0 : 16)
+            .padding(.horizontal, shape == .circle ? 0 : 16 * properties.scale)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background { background }
     }
@@ -52,7 +52,7 @@ struct ButtonElementView: View {
         if shape == .circle {
             if iconPosition == .none { text } else { icon }
         } else {
-            HStack(spacing: 8) {
+            HStack(spacing: 8 * properties.scale) {
                 if iconPosition == .leading { icon }
                 text
                 if iconPosition == .trailing { icon }

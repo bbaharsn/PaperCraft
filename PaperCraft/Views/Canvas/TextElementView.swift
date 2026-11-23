@@ -14,7 +14,7 @@ struct TextElementView: View {
 
     var body: some View {
         Text(properties.text ?? "")
-            .font(Self.font(named: properties.fontName, style: style))
+            .font(canvasFont)
             .fontWeight(weight)
             .italic(properties.isItalic ?? false)
             .foregroundStyle(textColor)
@@ -23,15 +23,25 @@ struct TextElementView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: frameAlignment)
     }
 
-    /// Seçilen aileden, stile uygun boyutta bir yazı tipi.
-    /// Yazı tipi seçme listesi de satırları bununla çizer.
+    /// Canvas'taki yazı tipi: sabit boyutlu (cihazın yazı boyutu ayarından bağımsız), çünkü kutu
+    /// `TextMeasure` ile yazıya oturtulur; ikisi aynı boyutu kullanmalı.
+    private var canvasFont: Font {
+        let size = TextMeasure.fontSize(of: properties)
+        guard let name = properties.fontName, !name.isEmpty, name != FontFamilies.system else {
+            return .system(size: size)
+        }
+        return .custom(name, fixedSize: size)
+    }
+
+    /// Seçilen aileden, stile uygun boyutta bir yazı tipi (cihazın yazı boyutu ayarıyla büyür).
+    /// Yazı tipi seçme listesi ve üst bar başlığı bununla çizer.
     static func font(named name: String?, style: TextFontStyle) -> Font {
         let textStyle = fontTextStyle(of: style)
         guard let name, !name.isEmpty, name != FontFamilies.system else {
             return .system(textStyle)
         }
         // relativeTo: kullanıcı cihazda yazı boyutunu büyütürse bu da büyüsün
-        return .custom(name, size: pointSize(of: style), relativeTo: textStyle)
+        return .custom(name, size: style.pointSize, relativeTo: textStyle)
     }
 
     private static func fontTextStyle(of style: TextFontStyle) -> Font.TextStyle {
@@ -41,17 +51,6 @@ struct TextElementView: View {
         case .headline: .headline
         case .body: .body
         case .caption: .caption
-        }
-    }
-
-    /// iOS'un varsayılan boyutları; özel yazı tiplerinde aynı büyüklüğü vermek için.
-    private static func pointSize(of style: TextFontStyle) -> CGFloat {
-        switch style {
-        case .largeTitle: 34
-        case .title: 28
-        case .headline: 17
-        case .body: 17
-        case .caption: 12
         }
     }
 

@@ -187,6 +187,26 @@ struct MultiSelectTests {
         #expect(editor.screen == before)
     }
 
+    /// Toplu büyütmede yazılar da aynı oranda büyür.
+    @Test func resizingMultiSelectionScalesContent() throws {
+        let a = element(.button, x: 0.1, y: 0.4, width: 0.2, height: 0.06)
+        let b = element(.text, x: 0.4, y: 0.5, width: 0.2, height: 0.06)
+        let editor = try editor([a, b])
+        editor.toggleMultiSelectMode()
+        editor.toggleInMultiSelection(a.id)
+        editor.toggleInMultiSelection(b.id)
+        let groupWidth = (0.6 - 0.1) * editor.canvasSize.width
+
+        editor.beginMultiSelectionResize()
+        editor.resizeMultiSelection(from: .bottomTrailing, by: CGSize(width: groupWidth * 0.1, height: 0))
+        editor.resizeMultiSelection(from: .bottomTrailing, by: CGSize(width: groupWidth * 0.5, height: 0))
+        editor.endMultiSelectionResize()
+
+        for element in editor.screen.elements {
+            #expect(abs((element.properties.contentScale ?? 1) - 1.5) < 1e-9)
+        }
+    }
+
     @Test func resizingMultiSelectionScalesBoxContents() throws {
         let (editor, box, symbol, _) = try boxScene()
         editor.toggleMultiSelectMode()

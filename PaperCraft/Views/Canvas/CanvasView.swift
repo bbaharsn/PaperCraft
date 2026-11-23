@@ -462,6 +462,7 @@ struct CanvasView: View {
                                              onResize: { corner, delta in
                                                  viewModel.resizeElement(element.id, from: corner, by: delta)
                                              },
+                                             onResizeEnd: { viewModel.endElementResize() },
                                              onRotate: element.type == .image || element.type == .symbol ? { degrees in
                                                  viewModel.setRotation(element.id,
                                                                        degrees: EditorViewModel.snappedRotation(degrees))
