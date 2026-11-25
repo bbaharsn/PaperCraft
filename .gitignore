@@ -15,3 +15,9 @@ Secrets.xcconfig
 
 # graphify bilgi grafiği çıktısı (yerelde yeniden üretilir)
 graphify-out/
+
+# ML (UI detector)
+ml/data/
+ml/runs/
+ml/.venv/
+*.pt

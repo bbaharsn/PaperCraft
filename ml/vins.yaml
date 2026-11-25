@@ -1,0 +1,13 @@
+path: data
+train: train/images
+val: val/images
+test: test/images
+names:
+  0: text
+  1: button
+  2: textField
+  3: image
+  4: symbol
+  5: box
+  6: navigationBar
+  7: switch
