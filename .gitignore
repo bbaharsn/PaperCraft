@@ -21,3 +21,4 @@ ml/data/
 ml/runs/
 ml/.venv/
 *.pt
+ml/runs-train.log
