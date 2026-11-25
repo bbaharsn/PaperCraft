@@ -46,3 +46,44 @@ cd ml
 ```
 
 Çıktı `ml/data/{train,val,test}/{images,labels}/` altına yazılır (git'e girmez). Resimler kopyalanmaz, **symlink** olarak bağlanır: disk tasarrufu. Orijinal veri setine dokunulmaz.
+
+## 4. Eğitim ve metrikler
+
+**Ne yapıyoruz:** `yolo11n` modelini VINS ekran görüntüleriyle eğitiyoruz, sonra test setinde ölçüyoruz.
+**Neden:** Sıfırdan başlamak yerine **transfer learning** kullanıyoruz: `yolo11n.pt` zaten milyonlarca resimde "kenar, şekil, nesne" görmeyi öğrenmiş. Biz ona sadece "bu 8 arayüz elemanı şuna benzer" diyoruz. Daha az veri ve zamanla iyi sonuç verir.
+
+```bash
+cd ml
+.venv/bin/python train.py            # tam eğitim, saatler sürer
+.venv/bin/python train.py --smoke    # 1 dakikalık deneme
+.venv/bin/python evaluate.py runs/detect/vins/weights/best.pt --split test
+```
+
+Çıktı `ml/runs/detect/vins/` altına yazılır (git'e girmez). `weights/best.pt` en iyi modeldir.
+
+### Eğitim ayarları
+
+| Argüman | Anlamı |
+|---|---|
+| `epochs=50` | Veri setini en fazla 50 kez baştan sona görür |
+| `patience=10` | 10 epoch boyunca val skoru artmazsa erken durur (ezberlemeyi engeller) |
+| `imgsz=640` | Resimler 640 piksele ölçeklenir |
+| `device="mps"` | Mac'in GPU'sunu kullanır (CPU'dan çok hızlı) |
+| `fliplr=0.0` | Yatay çevirme kapalı: arayüzler sağ-sol simetrik değil, çevirirsek yanlış öğrenir |
+| `perspective=0.0005` | Çok hafif perspektif bozulması (ekran görüntüsü biraz eğri çekilmiş gibi) |
+| `hsv_v=0.4` | Parlaklık değişimi (açık/koyu tema) |
+| `hsv_s=0.5` | Renk canlılığı değişimi |
+| `degrees=2` | En fazla 2 derece döndürme |
+
+Son beşi **augmentation**: aynı resmi küçük değişikliklerle göstererek modelin ezberlemesini önler.
+
+### Metrikleri okumak
+
+- **Precision:** "Bulduğum kutuların kaçı doğru?" Düşükse model fazla yanlış alarm veriyor.
+- **Recall:** "Gerçek elemanların kaçını buldum?" Düşükse model eleman kaçırıyor.
+- **mAP50:** Kutu gerçek kutuyla en az %50 örtüşürse doğru sayılır. Genel kalite skoru, 1'e yakın iyi.
+- **mAP50-95:** Aynısı ama %50'den %95'e kadar sıkı eşiklerle. Kutunun ne kadar **hassas** oturduğunu ölçer, hep mAP50'den düşüktür.
+
+```
+text  precision 0.80  recall 0.75  mAP50 0.78  mAP50-95 0.55   # örnek satır
+```
